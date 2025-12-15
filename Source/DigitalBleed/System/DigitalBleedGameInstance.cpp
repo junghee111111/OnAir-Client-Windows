@@ -4,7 +4,10 @@
 #include "DigitalBleedGameInstance.h"
 
 #include "Blueprint/UserWidget.h"
+<<<<<<< HEAD
 #include "Kismet/GameplayStatics.h"
+=======
+>>>>>>> bebc240abf8aec06802bfe897c1d6c7e0b995438
 
 void UDigitalBleedGameInstance::InitGamePlayerLoggedIn()
 {
