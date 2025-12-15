@@ -4,5 +4,6 @@ Content/
 DerivedDataCache/
 Config/
 Binaries/
+Build/
 .idea/
 .vs/
