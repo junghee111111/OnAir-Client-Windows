@@ -4,10 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
-<<<<<<< HEAD
 #include "UI/WidgetMainMenu.h"
-=======
->>>>>>> bebc240abf8aec06802bfe897c1d6c7e0b995438
 #include "DigitalBleedGameInstance.generated.h"
 
 /**
