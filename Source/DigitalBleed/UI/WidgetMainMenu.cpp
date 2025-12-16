@@ -5,10 +5,12 @@
 
 #include "Components/Button.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "System/DigitalBleedGameInstance.h"
 
 void UWidgetMainMenu::NativeConstruct()
 {
 	Super::NativeConstruct();
+	this->BindButtonEvents();
 }
 
 void UWidgetMainMenu::OnBtnLoadGameClicked()
@@ -17,6 +19,11 @@ void UWidgetMainMenu::OnBtnLoadGameClicked()
 
 void UWidgetMainMenu::OnBtnNewGameClicked()
 {
+	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
+	if (IsValid(GI))
+	{
+		GI->InitNewGame();
+	}
 }
 
 void UWidgetMainMenu::OnBtnOptionsClicked()

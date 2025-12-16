@@ -36,15 +36,35 @@ void UDigitalBleedGameInstance::StreamMap(FName MapName)
 		UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Already streaming a level!"));
 		return;
 	}
-
-	LevelToStream = MapName;
-	bIsStreaming = true;
-
+	
 	// 로딩 스크린 표시
 	if (WbpLoadingScreen)
 	{
 		WbpLoadingScreen->SetVisibility(ESlateVisibility::Visible);
 	}
+
+	if (!LevelToStream.IsNone())
+	{
+		// Set up latent action for unload completion
+		FLatentActionInfo UnloadLatentInfo;
+		UnloadLatentInfo.CallbackTarget = this;
+		UnloadLatentInfo.ExecutionFunction = FName("OnLevelUnloaded");
+		UnloadLatentInfo.UUID = GetUniqueID();
+		UnloadLatentInfo.Linkage = 0;
+		
+		bIsStreaming = true;
+		
+		// Show loading screen
+		if (WbpLoadingScreen)
+		{
+			WbpLoadingScreen->SetVisibility(ESlateVisibility::Visible);
+		}
+		
+		UGameplayStatics::UnloadStreamLevel(this, LevelToStream, UnloadLatentInfo, false);
+	}
+
+	LevelToStream = MapName;
+	bIsStreaming = true;
 
 
 	FLatentActionInfo LatentInfo;
@@ -76,4 +96,19 @@ void UDigitalBleedGameInstance::OnLevelLoaded()
 	}
 	
 	UE_LOG(LogTemp, Log, TEXT("[GameInstance] : Level streaming completed!"));
+}
+
+void UDigitalBleedGameInstance::InitNewGame()
+{
+	// 새로운 PlayerState 생성
+	SavedPlayerState = NewObject<AMyPlayerState>(this);
+	
+	if (SavedPlayerState)
+	{
+		// PlayerState 초기화 (생성자에서 기본값이 설정되지만 추가 설정 가능)
+		UE_LOG(LogTemp, Log, TEXT("New PlayerState created successfully"));
+	}
+	
+	// Level_House 맵으로 스트림 (비동기 로딩)
+	this->StreamMap(FName("/Game/Level/Level_House"));
 }

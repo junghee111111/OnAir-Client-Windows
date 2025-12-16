@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "MyPlayerState.h"
 #include "Engine/GameInstance.h"
 #include "UI/WidgetMainMenu.h"
 #include "DigitalBleedGameInstance.generated.h"
@@ -14,12 +15,6 @@ UCLASS()
 class DIGITALBLEED_API UDigitalBleedGameInstance : public UGameInstance
 {
 	GENERATED_BODY()
-	
-	int32 Month = 3;
-	int32 Day = 2;
-	int32 Yoil = 3;
-	int32 Year = 2016;
-	int32 Hour = 0;
 
 protected:
 	UPROPERTY()
@@ -39,6 +34,30 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Level Streaming")
 	bool bIsStreaming;
 
+	UPROPERTY(BlueprintReadOnly)
+	int32 Month = 3;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Day = 2;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Yoil = 3;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Year = 2016;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Hour = 0;
+
+	UPROPERTY()
+	TObjectPtr<AMyPlayerState> SavedPlayerState;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 GlobalOption_BGMVolume = 50;
+	
+	UPROPERTY(BlueprintReadOnly)
+	int32 GlobalOption_FXVolume = 50;
+	
 public:
 	virtual void InitGamePlayerLoggedIn();
 	
@@ -47,4 +66,7 @@ public:
 
 	UFUNCTION()
 	void OnLevelLoaded();
+
+	UFUNCTION()
+	void InitNewGame();
 };
