@@ -29,7 +29,7 @@ protected:
 
 	// 맵 스트리밍을 위한 프로퍼티 추가
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Level Streaming")
-	FName LevelToStream;
+	FName LevelToStream = NAME_None;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Level Streaming")
 	bool bIsStreaming;
@@ -63,6 +63,10 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Level Streaming")
 	void StreamMap(FName MapName);
+	void ProcessLoadLevel();
+
+	UFUNCTION()
+	void OnLevelUnloaded();
 
 	UFUNCTION()
 	void OnLevelLoaded();

@@ -14,7 +14,7 @@ void UDigitalBleedGameInstance::InitGamePlayerLoggedIn()
 		if (!this->WbpLoadingScreen)
 		{
 			this->WbpLoadingScreen = CreateWidget<class UUserWidget>(PC, this->WbpLoadingScreenClass);
-			this->WbpLoadingScreen->AddToViewport();
+			this->WbpLoadingScreen->AddToViewport(100);
 		}
 	} else
 	{
@@ -43,8 +43,9 @@ void UDigitalBleedGameInstance::StreamMap(FName MapName)
 		WbpLoadingScreen->SetVisibility(ESlateVisibility::Visible);
 	}
 
-	if (!LevelToStream.IsNone())
+	if (!this->LevelToStream.IsNone())
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Try to unload existing level..."));
 		// Set up latent action for unload completion
 		FLatentActionInfo UnloadLatentInfo;
 		UnloadLatentInfo.CallbackTarget = this;
@@ -52,18 +53,19 @@ void UDigitalBleedGameInstance::StreamMap(FName MapName)
 		UnloadLatentInfo.UUID = GetUniqueID();
 		UnloadLatentInfo.Linkage = 0;
 		
-		bIsStreaming = true;
-		
-		// Show loading screen
-		if (WbpLoadingScreen)
-		{
-			WbpLoadingScreen->SetVisibility(ESlateVisibility::Visible);
-		}
-		
-		UGameplayStatics::UnloadStreamLevel(this, LevelToStream, UnloadLatentInfo, false);
+		UGameplayStatics::UnloadStreamLevel(this, LevelToStream, UnloadLatentInfo, true);
+		this->LevelToStream = MapName;
+		return;
+	} else {
+		UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : No level to unload!"));
 	}
 
-	LevelToStream = MapName;
+	this->LevelToStream = MapName;
+	this->ProcessLoadLevel();
+}
+
+void UDigitalBleedGameInstance::ProcessLoadLevel()
+{
 	bIsStreaming = true;
 
 
@@ -73,6 +75,15 @@ void UDigitalBleedGameInstance::StreamMap(FName MapName)
 	LatentInfo.UUID = GetUniqueID();
 	LatentInfo.Linkage = 0;
 	UGameplayStatics::LoadStreamLevel(this, LevelToStream, true, true, LatentInfo);
+}
+
+void UDigitalBleedGameInstance::OnLevelUnloaded()
+{
+	UE_LOG(LogTemp, Log, TEXT("[GameInstance] : Level Unloaded."));
+	if (!this->LevelToStream.IsNone())
+	{
+		this->ProcessLoadLevel();
+	}
 }
 
 void UDigitalBleedGameInstance::OnLevelLoaded()
