@@ -119,7 +119,23 @@ void UDigitalBleedGameInstance::InitNewGame()
 		// PlayerState 초기화 (생성자에서 기본값이 설정되지만 추가 설정 가능)
 		UE_LOG(LogTemp, Log, TEXT("New PlayerState created successfully"));
 	}
+	this->WbpMainMenu->RemoveFromParent();
 	
 	// Level_House 맵으로 스트림 (비동기 로딩)
 	this->StreamMap(FName("/Game/Level/Level_House"));
+}
+
+void UDigitalBleedGameInstance::PlayBGM(USoundBase* BGMToPlay)
+{
+	if (!BGMToPlay)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Invalid BGM sound provided!"));
+		return;
+	}
+
+	// 볼륨 계산 (0-100 범위를 0.0-1.0으로 변환)
+	float VolumeMultiplier = GlobalOption_BGMVolume / 100.0f;
+
+	// BGM 재생 (2D 사운드로, 루프 설정)
+	UGameplayStatics::PlaySound2D(this, BGMToPlay, VolumeMultiplier);
 }

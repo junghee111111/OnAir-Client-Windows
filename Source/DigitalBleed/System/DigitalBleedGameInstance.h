@@ -73,4 +73,7 @@ public:
 
 	UFUNCTION()
 	void InitNewGame();
+
+	UFUNCTION(BlueprintCallable)
+	void PlayBGM(USoundBase* BGMToPlay);
 };
