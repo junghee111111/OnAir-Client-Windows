@@ -5,6 +5,7 @@
 
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
+#include "UI/WidgetModal.h"
 
 void UDigitalBleedGameInstance::InitGamePlayerLoggedIn()
 {
@@ -113,6 +114,8 @@ void UDigitalBleedGameInstance::InitNewGame()
 {
 	// 새로운 PlayerState 생성
 	SavedPlayerState = NewObject<AMyPlayerState>(this);
+
+	this->ShowModal();
 	
 	if (SavedPlayerState)
 	{
@@ -138,4 +141,25 @@ void UDigitalBleedGameInstance::PlayBGM(USoundBase* BGMToPlay)
 
 	// BGM 재생 (2D 사운드로, 루프 설정)
 	UGameplayStatics::PlaySound2D(this, BGMToPlay, VolumeMultiplier);
+}
+
+void UDigitalBleedGameInstance::ShowModal()
+{
+	APlayerController* PC = GetFirstLocalPlayerController();
+	if (PC->IsValidLowLevel())
+	{
+		if (!this->WbpModal && this->WbpModalClass)
+		{
+			this->WbpModal = CreateWidget<class UWidgetModal>(PC, this->WbpModalClass);
+			this->WbpModal->AddToViewport(50);
+		}
+	}
+}
+
+void UDigitalBleedGameInstance::HideModal()
+{
+	if (this->WbpModal->IsInViewport())
+	{
+		this->WbpModal->RemoveFromParent();
+	}
 }

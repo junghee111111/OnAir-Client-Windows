@@ -27,6 +27,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
 	TSubclassOf<UWidgetMainMenu> WbpMainMenuClass;
 
+	UPROPERTY()
+	UWidgetModal* WbpModal = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
+	TSubclassOf<UWidgetModal> WbpModalClass;
+
 	// 맵 스트리밍을 위한 프로퍼티 추가
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Level Streaming")
 	FName LevelToStream = NAME_None;
@@ -76,4 +81,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void PlayBGM(USoundBase* BGMToPlay);
+
+	UFUNCTION(BlueprintCallable)
+	void ShowModal();
+
+	UFUNCTION(BlueprintCallable)
+	void HideModal();
 };

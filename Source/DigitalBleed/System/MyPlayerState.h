@@ -37,6 +37,21 @@ protected:
 	UPROPERTY(BlueprintReadWrite, Replicated, Category = "Stats")
 	int32 Stat_SPD;
 
+	UPROPERTY(BlueprintReadOnly, Replicated, Category="Ability")
+	int32 Hp;
+
+	UPROPERTY(BlueprintReadOnly, Replicated, Category="Ability")
+	int32 HpMax;
+
+	UPROPERTY(BlueprintReadOnly, Replicated, Category="Ability")
+	float Potassium;
+
+	UPROPERTY(BlueprintReadOnly, Replicated, Category="Ability")
+	float Sodium;
+
+	UPROPERTY(BlueprintReadOnly, Replicated, Category="Ability")
+	float Hemoglobin;
+
 	// 돈 관련
 	UPROPERTY(BlueprintReadWrite, Replicated, Category = "Money")
 	int32 MoneyWon;
