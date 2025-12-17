@@ -18,11 +18,18 @@ class DIGITALBLEED_API UDigitalBleedGameInstance : public UGameInstance
 {
 	GENERATED_BODY()
 
+	void FakeLoadingScreenInit();
+	
 protected:
 	UPROPERTY()
 	UWidgetLoadingScreen* WbpLoadingScreen = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
 	TSubclassOf<UWidgetLoadingScreen> WbpLoadingScreenClass;
+
+	UPROPERTY()
+	UWidgetLoadingScreen* WbpLoadingScreenFaker = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
+	TSubclassOf<UWidgetLoadingScreen> WbpLoadingScreenFakerClass;
 
 	UPROPERTY()
 	UWidgetMainMenu* WbpMainMenu = nullptr;
@@ -69,6 +76,7 @@ protected:
 	
 public:
 	virtual void Init() override;
+	
 
 	UFUNCTION()
 	virtual void BeginLoadingScreen(const FString& MapName);

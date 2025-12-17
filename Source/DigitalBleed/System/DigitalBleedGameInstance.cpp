@@ -15,6 +15,22 @@ void UDigitalBleedGameInstance::Init()
 
 	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UDigitalBleedGameInstance::BeginLoadingScreen);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UDigitalBleedGameInstance::EndLoadingScreen);
+
+	this->FakeLoadingScreenInit();
+}
+
+void UDigitalBleedGameInstance::FakeLoadingScreenInit()
+{
+	//Faker init.
+	if (this->WbpLoadingScreenFakerClass)
+	{
+		if (!this->WbpLoadingScreenFaker)
+		{
+			this->WbpLoadingScreenFaker = CreateWidget<class UWidgetLoadingScreen>(
+				this, this->WbpLoadingScreenFakerClass, TEXT("LoadingScreenFaker"));
+			this->WbpLoadingScreenFaker->AddToViewport();
+		}
+	}
 }
 
 void UDigitalBleedGameInstance::BeginLoadingScreen(const FString& MapName)
@@ -22,6 +38,8 @@ void UDigitalBleedGameInstance::BeginLoadingScreen(const FString& MapName)
 	UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Check if dedicated server running"));
 	if (IsRunningDedicatedServer()) return;
 	UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Loading screen started."));
+	
+	
 	if (this->WbpLoadingScreenClass)
 	{
 		if (!this->WbpLoadingScreen)
@@ -29,14 +47,13 @@ void UDigitalBleedGameInstance::BeginLoadingScreen(const FString& MapName)
 			this->WbpLoadingScreen = CreateWidget<class UWidgetLoadingScreen>(
 				this, this->WbpLoadingScreenClass, TEXT("LoadingScreen"));
 		}
-		this->WbpLoadingScreen->Show();
 		FLoadingScreenAttributes LoadingScreenAttr;
 		LoadingScreenAttr.WidgetLoadingScreen = this->WbpLoadingScreen->TakeWidget();
 		LoadingScreenAttr.bAllowInEarlyStartup = false;
 		LoadingScreenAttr.PlaybackType = MT_Normal;
 		LoadingScreenAttr.bAllowEngineTick = false;
 		LoadingScreenAttr.bWaitForManualStop = false;
-		LoadingScreenAttr.bAutoCompleteWhenLoadingCompletes = false;
+		LoadingScreenAttr.bAutoCompleteWhenLoadingCompletes = true;
 		LoadingScreenAttr.MinimumLoadingScreenDisplayTime = 1.f;
 
 		GetMoviePlayer()->SetupLoadingScreen(LoadingScreenAttr);
@@ -48,9 +65,10 @@ void UDigitalBleedGameInstance::EndLoadingScreen(UWorld* InLoadedWorld)
 	if (InLoadedWorld)
 	{
 		FTimerHandle TimerHandle;
+		this->FakeLoadingScreenInit();
 		InLoadedWorld->GetTimerManager().SetTimer(TimerHandle, [this]()
 		{
-			this->WbpLoadingScreen->Hide();
+			this->WbpLoadingScreenFaker->Hide();
 		}, 2.0f, false);
 	}
 }
@@ -80,7 +98,13 @@ void UDigitalBleedGameInstance::InitGamePlayerLoggedIn()
 
 void UDigitalBleedGameInstance::JustOpenMap(FName MapName)
 {
-	UGameplayStatics::OpenLevel(this, MapName);
+	this->WbpLoadingScreenFaker->Show();
+	FTimerHandle TimerHandle;
+	this->GetTimerManager().SetTimer(TimerHandle, [this,MapName]()
+	{
+		UGameplayStatics::OpenLevel(this, MapName);
+	}, 2.0f, false);
+	
 }
 
 void UDigitalBleedGameInstance::StreamMap(FName MapName)
