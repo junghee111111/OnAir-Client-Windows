@@ -68,6 +68,14 @@ protected:
 	int32 GlobalOption_FXVolume = 50;
 	
 public:
+	virtual void Init() override;
+
+	UFUNCTION()
+	virtual void BeginLoadingScreen(const FString& MapName);
+
+	UFUNCTION()
+	virtual void EndLoadingScreen(UWorld* InLoadedWorld);
+	
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnGlobalEvent OnGlobalEvent;
 
@@ -75,7 +83,10 @@ public:
 	void DoGlobalEvent(FString StringParameter);
 	
 	virtual void InitGamePlayerLoggedIn();
-	
+
+	UFUNCTION(BlueprintCallable)
+	void JustOpenMap(FName MapName);
+
 	UFUNCTION(BlueprintCallable, Category = "Level Streaming")
 	void StreamMap(FName MapName);
 	void ProcessLoadLevel();

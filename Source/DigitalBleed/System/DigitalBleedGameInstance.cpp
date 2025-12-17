@@ -7,6 +7,53 @@
 #include "Data/StructModal.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/WidgetModal.h"
+#include "MoviePlayer.h"
+
+void UDigitalBleedGameInstance::Init()
+{
+	Super::Init();
+
+	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UDigitalBleedGameInstance::BeginLoadingScreen);
+	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UDigitalBleedGameInstance::EndLoadingScreen);
+}
+
+void UDigitalBleedGameInstance::BeginLoadingScreen(const FString& MapName)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Check if dedicated server running"));
+	if (IsRunningDedicatedServer()) return;
+	UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Loading screen started."));
+	if (this->WbpLoadingScreenClass)
+	{
+		if (!this->WbpLoadingScreen)
+		{
+			this->WbpLoadingScreen = CreateWidget<class UWidgetLoadingScreen>(
+				this, this->WbpLoadingScreenClass, TEXT("LoadingScreen"));
+		}
+		this->WbpLoadingScreen->Show();
+		FLoadingScreenAttributes LoadingScreenAttr;
+		LoadingScreenAttr.WidgetLoadingScreen = this->WbpLoadingScreen->TakeWidget();
+		LoadingScreenAttr.bAllowInEarlyStartup = false;
+		LoadingScreenAttr.PlaybackType = MT_Normal;
+		LoadingScreenAttr.bAllowEngineTick = false;
+		LoadingScreenAttr.bWaitForManualStop = false;
+		LoadingScreenAttr.bAutoCompleteWhenLoadingCompletes = false;
+		LoadingScreenAttr.MinimumLoadingScreenDisplayTime = 1.f;
+
+		GetMoviePlayer()->SetupLoadingScreen(LoadingScreenAttr);
+	}
+}
+
+void UDigitalBleedGameInstance::EndLoadingScreen(UWorld* InLoadedWorld)
+{
+	if (InLoadedWorld)
+	{
+		FTimerHandle TimerHandle;
+		InLoadedWorld->GetTimerManager().SetTimer(TimerHandle, [this]()
+		{
+			this->WbpLoadingScreen->Hide();
+		}, 2.0f, false);
+	}
+}
 
 void UDigitalBleedGameInstance::DoGlobalEvent(FString StringParameter)
 {
@@ -21,30 +68,19 @@ void UDigitalBleedGameInstance::DoGlobalEvent(FString StringParameter)
 			// PlayerState 초기화 (생성자에서 기본값이 설정되지만 추가 설정 가능)
 			UE_LOG(LogTemp, Log, TEXT("New PlayerState created successfully"));
 		}
-		this->WbpMainMenu->RemoveFromParent();
-		
-		// Level_House 맵으로 스트림 (비동기 로딩)
-		this->StreamMap(FName("/Game/Level/Level_House"));
-		this->HideModal();
+		this->JustOpenMap("/Game/Level/Level_Chilgok");
 	}
 }
 
 void UDigitalBleedGameInstance::InitGamePlayerLoggedIn()
 {
 	OnGlobalEvent.AddDynamic(this, &UDigitalBleedGameInstance::DoGlobalEvent);
-	APlayerController* PC = GetFirstLocalPlayerController();
-	if (this->WbpLoadingScreenClass)
-	{
-		if (!this->WbpLoadingScreen)
-		{
-			this->WbpLoadingScreen = CreateWidget<class UWidgetLoadingScreen>(PC, this->WbpLoadingScreenClass);
-			this->WbpLoadingScreen->AddToViewport(100);
-		}
-	} else
-	{
-		UE_LOG(LogTemp, Error, TEXT("[GameInstance] : No Loading Screen Widget is defined!"));
-	}
-	this->StreamMap("/Game/Level/Level_Chilgok");
+	//this->StreamMap("/Game/Level/Level_Chilgok");
+}
+
+void UDigitalBleedGameInstance::JustOpenMap(FName MapName)
+{
+	UGameplayStatics::OpenLevel(this, MapName);
 }
 
 void UDigitalBleedGameInstance::StreamMap(FName MapName)
@@ -121,16 +157,6 @@ void UDigitalBleedGameInstance::OnLevelLoaded()
 	if (WbpLoadingScreen)
 	{
 		WbpLoadingScreen->Hide();
-	}
-
-	APlayerController* PC = GetFirstLocalPlayerController();
-	if (PC->IsValidLowLevel())
-	{
-		if (!this->WbpMainMenu && this->WbpMainMenuClass)
-		{
-			this->WbpMainMenu = CreateWidget<class UWidgetMainMenu>(PC, this->WbpMainMenuClass);
-			this->WbpMainMenu->AddToViewport();
-		}
 	}
 	
 	UE_LOG(LogTemp, Log, TEXT("[GameInstance] : Level streaming completed!"));
