@@ -4,17 +4,40 @@
 #include "DigitalBleedGameInstance.h"
 
 #include "Blueprint/UserWidget.h"
+#include "Data/StructModal.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/WidgetModal.h"
 
+void UDigitalBleedGameInstance::DoGlobalEvent(FString StringParameter)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Global Event : %s"), *StringParameter);
+	if (FString(StringParameter) == "InitNewGame")
+	{
+		// 새로운 PlayerState 생성
+		SavedPlayerState = NewObject<AMyPlayerState>(this);
+
+		if (SavedPlayerState)
+		{
+			// PlayerState 초기화 (생성자에서 기본값이 설정되지만 추가 설정 가능)
+			UE_LOG(LogTemp, Log, TEXT("New PlayerState created successfully"));
+		}
+		this->WbpMainMenu->RemoveFromParent();
+		
+		// Level_House 맵으로 스트림 (비동기 로딩)
+		this->StreamMap(FName("/Game/Level/Level_House"));
+		this->HideModal();
+	}
+}
+
 void UDigitalBleedGameInstance::InitGamePlayerLoggedIn()
 {
+	OnGlobalEvent.AddDynamic(this, &UDigitalBleedGameInstance::DoGlobalEvent);
 	APlayerController* PC = GetFirstLocalPlayerController();
 	if (this->WbpLoadingScreenClass)
 	{
 		if (!this->WbpLoadingScreen)
 		{
-			this->WbpLoadingScreen = CreateWidget<class UUserWidget>(PC, this->WbpLoadingScreenClass);
+			this->WbpLoadingScreen = CreateWidget<class UWidgetLoadingScreen>(PC, this->WbpLoadingScreenClass);
 			this->WbpLoadingScreen->AddToViewport(100);
 		}
 	} else
@@ -41,35 +64,38 @@ void UDigitalBleedGameInstance::StreamMap(FName MapName)
 	// 로딩 스크린 표시
 	if (WbpLoadingScreen)
 	{
-		WbpLoadingScreen->SetVisibility(ESlateVisibility::Visible);
+		WbpLoadingScreen->Show();
 	}
 
-	if (!this->LevelToStream.IsNone())
+	FTimerHandle TimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this,MapName]()
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Try to unload existing level..."));
-		// Set up latent action for unload completion
-		FLatentActionInfo UnloadLatentInfo;
-		UnloadLatentInfo.CallbackTarget = this;
-		UnloadLatentInfo.ExecutionFunction = FName("OnLevelUnloaded");
-		UnloadLatentInfo.UUID = GetUniqueID();
-		UnloadLatentInfo.Linkage = 0;
-		
-		UGameplayStatics::UnloadStreamLevel(this, LevelToStream, UnloadLatentInfo, true);
-		this->LevelToStream = MapName;
-		return;
-	} else {
-		UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : No level to unload!"));
-	}
+		//delay 1 second
+		if (!this->LevelToStream.IsNone())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Try to unload existing level..."));
+			// Set up latent action for unload completion
+			FLatentActionInfo UnloadLatentInfo;
+			UnloadLatentInfo.CallbackTarget = this;
+			UnloadLatentInfo.ExecutionFunction = FName("OnLevelUnloaded");
+			UnloadLatentInfo.UUID = GetUniqueID();
+			UnloadLatentInfo.Linkage = 0;
+			
+			UGameplayStatics::UnloadStreamLevel(this, LevelToStream, UnloadLatentInfo, true);
+			this->LevelToStream = MapName;
+			return;
+		}
 
-	this->LevelToStream = MapName;
-	this->ProcessLoadLevel();
+		this->LevelToStream = MapName;
+		this->ProcessLoadLevel();
+	}, 1.0f, false);
+
+	
 }
 
 void UDigitalBleedGameInstance::ProcessLoadLevel()
 {
 	bIsStreaming = true;
-
-
 	FLatentActionInfo LatentInfo;
 	LatentInfo.CallbackTarget = this;
 	LatentInfo.ExecutionFunction = FName("OnLevelLoaded");
@@ -94,7 +120,7 @@ void UDigitalBleedGameInstance::OnLevelLoaded()
 	// 로딩 스크린 숨김
 	if (WbpLoadingScreen)
 	{
-		WbpLoadingScreen->SetVisibility(ESlateVisibility::Hidden);
+		WbpLoadingScreen->Hide();
 	}
 
 	APlayerController* PC = GetFirstLocalPlayerController();
@@ -110,22 +136,13 @@ void UDigitalBleedGameInstance::OnLevelLoaded()
 	UE_LOG(LogTemp, Log, TEXT("[GameInstance] : Level streaming completed!"));
 }
 
-void UDigitalBleedGameInstance::InitNewGame()
+void UDigitalBleedGameInstance::ShowNewGameModal()
 {
-	// 새로운 PlayerState 생성
-	SavedPlayerState = NewObject<AMyPlayerState>(this);
-
-	this->ShowModal();
-	
-	if (SavedPlayerState)
+	if (DT_Modal)
 	{
-		// PlayerState 초기화 (생성자에서 기본값이 설정되지만 추가 설정 가능)
-		UE_LOG(LogTemp, Log, TEXT("New PlayerState created successfully"));
+		FRowModal* ModalData = DT_Modal->FindRow<FRowModal>(FName("ModalNewGame"), TEXT(""));
+		this->ShowModal(*ModalData);
 	}
-	this->WbpMainMenu->RemoveFromParent();
-	
-	// Level_House 맵으로 스트림 (비동기 로딩)
-	this->StreamMap(FName("/Game/Level/Level_House"));
 }
 
 void UDigitalBleedGameInstance::PlayBGM(USoundBase* BGMToPlay)
@@ -143,7 +160,7 @@ void UDigitalBleedGameInstance::PlayBGM(USoundBase* BGMToPlay)
 	UGameplayStatics::PlaySound2D(this, BGMToPlay, VolumeMultiplier);
 }
 
-void UDigitalBleedGameInstance::ShowModal()
+void UDigitalBleedGameInstance::ShowModal(FRowModal Modal)
 {
 	APlayerController* PC = GetFirstLocalPlayerController();
 	if (PC->IsValidLowLevel())
@@ -151,6 +168,7 @@ void UDigitalBleedGameInstance::ShowModal()
 		if (!this->WbpModal && this->WbpModalClass)
 		{
 			this->WbpModal = CreateWidget<class UWidgetModal>(PC, this->WbpModalClass);
+			this->WbpModal->SetModalData(Modal);
 			this->WbpModal->AddToViewport(50);
 		}
 	}
@@ -161,5 +179,6 @@ void UDigitalBleedGameInstance::HideModal()
 	if (this->WbpModal->IsInViewport())
 	{
 		this->WbpModal->RemoveFromParent();
+		this->WbpModal = nullptr;
 	}
 }

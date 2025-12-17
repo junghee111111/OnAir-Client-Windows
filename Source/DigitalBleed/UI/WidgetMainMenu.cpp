@@ -22,7 +22,7 @@ void UWidgetMainMenu::OnBtnNewGameClicked()
 	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
 	if (IsValid(GI))
 	{
-		GI->InitNewGame();
+		GI->ShowNewGameModal();
 	}
 }
 

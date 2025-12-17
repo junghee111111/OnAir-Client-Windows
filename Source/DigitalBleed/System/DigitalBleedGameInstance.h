@@ -4,13 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "MyPlayerState.h"
+#include "Data/StructModal.h"
 #include "Engine/GameInstance.h"
+#include "UI/WidgetLoadingScreen.h"
 #include "UI/WidgetMainMenu.h"
+#include "UI/WidgetModal.h"
 #include "DigitalBleedGameInstance.generated.h"
 
-/**
- * 
- */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGlobalEvent, FString, StringParameter);
+
 UCLASS()
 class DIGITALBLEED_API UDigitalBleedGameInstance : public UGameInstance
 {
@@ -18,9 +20,9 @@ class DIGITALBLEED_API UDigitalBleedGameInstance : public UGameInstance
 
 protected:
 	UPROPERTY()
-	UUserWidget* WbpLoadingScreen = nullptr;
+	UWidgetLoadingScreen* WbpLoadingScreen = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
-	TSubclassOf<UUserWidget> WbpLoadingScreenClass;
+	TSubclassOf<UWidgetLoadingScreen> WbpLoadingScreenClass;
 
 	UPROPERTY()
 	UWidgetMainMenu* WbpMainMenu = nullptr;
@@ -32,7 +34,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
 	TSubclassOf<UWidgetModal> WbpModalClass;
 
-	// 맵 스트리밍을 위한 프로퍼티 추가
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
+	UDataTable* DT_Modal = nullptr;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Level Streaming")
 	FName LevelToStream = NAME_None;
 
@@ -64,6 +68,12 @@ protected:
 	int32 GlobalOption_FXVolume = 50;
 	
 public:
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnGlobalEvent OnGlobalEvent;
+
+	UFUNCTION()
+	void DoGlobalEvent(FString StringParameter);
+	
 	virtual void InitGamePlayerLoggedIn();
 	
 	UFUNCTION(BlueprintCallable, Category = "Level Streaming")
@@ -77,13 +87,13 @@ public:
 	void OnLevelLoaded();
 
 	UFUNCTION()
-	void InitNewGame();
+	void ShowNewGameModal();
 
 	UFUNCTION(BlueprintCallable)
 	void PlayBGM(USoundBase* BGMToPlay);
 
 	UFUNCTION(BlueprintCallable)
-	void ShowModal();
+	void ShowModal(FRowModal Modal);
 
 	UFUNCTION(BlueprintCallable)
 	void HideModal();

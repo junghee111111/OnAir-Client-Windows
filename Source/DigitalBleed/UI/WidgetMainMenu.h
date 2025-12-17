@@ -22,16 +22,16 @@ public:
 	class UImage* LogoImage;
 
 	// UI 버튼들
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly)
 	class UButton* BtnLoadGame;
 
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly)
 	class UButton* BtnNewGame;
 
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly)
 	class UButton* BtnOptions;
 
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly)
 	class UButton* BtnQuitGame;
 
 protected:
