@@ -92,7 +92,7 @@ void UDigitalBleedGameInstance::DoGlobalEvent(FString StringParameter)
 			// PlayerState 초기화 (생성자에서 기본값이 설정되지만 추가 설정 가능)
 			UE_LOG(LogTemp, Log, TEXT("New PlayerState created successfully"));
 		}
-		this->JustOpenMap("/Game/Level/Level_Chilgok");
+		this->JustOpenMap("/Game/Level/Level_House");
 	}
 }
 
@@ -150,7 +150,6 @@ void UDigitalBleedGameInstance::StreamMap(FName MapName)
 		if (!this->LevelToStream.IsNone())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Try to unload existing level..."));
-			// Set up latent action for unload completion
 			FLatentActionInfo UnloadLatentInfo;
 			UnloadLatentInfo.CallbackTarget = this;
 			UnloadLatentInfo.ExecutionFunction = FName("OnLevelUnloaded");
@@ -237,6 +236,32 @@ void UDigitalBleedGameInstance::PlayBGM(USoundBase* BGMToPlay)
 	}
 }
 
+void UDigitalBleedGameInstance::PlayDialogSound(USoundBase* DialogSound)
+{
+	if (!DialogSound || DialogSound->IsValidLowLevel())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Invalid Dialog sound provided!"));
+		return;
+	}
+
+	// 기존 BGM이 재생 중이면 정지
+	if (CurrentDialogAudioComponent && CurrentDialogAudioComponent->IsPlaying())
+	{
+		CurrentDialogAudioComponent->Stop();
+	}
+
+	// 볼륨 계산 (0-100 범위를 0.0-1.0으로 변환)
+	float VolumeMultiplier = GlobalOption_DialogVolume / 100.0f;
+
+	// BGM 재생 (2D 사운드로, 루프 설정) - AudioComponent 반환받기
+	CurrentDialogAudioComponent = UGameplayStatics::SpawnSound2D(this, DialogSound, VolumeMultiplier, 1.0f, 0.0f, nullptr, true, false);
+	
+	if (CurrentDialogAudioComponent)
+	{
+		CurrentDialogAudioComponent->Play();
+	}
+}
+
 void UDigitalBleedGameInstance::ShowModal(FRowModal Modal)
 {
 	APlayerController* PC = GetFirstLocalPlayerController();
@@ -260,7 +285,7 @@ void UDigitalBleedGameInstance::HideModal()
 	}
 }
 
-void UDigitalBleedGameInstance::ShowDialog(FRowDialog Modal)
+void UDigitalBleedGameInstance::ShowDialog(FRowDialog Dialog)
 {
 	APlayerController* PC = GetFirstLocalPlayerController();
 	if (PC->IsValidLowLevel())
@@ -268,7 +293,7 @@ void UDigitalBleedGameInstance::ShowDialog(FRowDialog Modal)
 		if (!this->WbpDialog && this->WbpDialogClass)
 		{
 			this->WbpDialog = CreateWidget<class UWidgetDialog>(PC, this->WbpDialogClass);
-			this->WbpDialog->SetDialogData(Modal);
+			this->WbpDialog->SetDialogData(Dialog);
 			this->WbpDialog->AddToViewport(Z_INDEX_DIALOG);
 		}
 	}
@@ -281,4 +306,10 @@ void UDigitalBleedGameInstance::HideDialog()
 		this->WbpDialog->RemoveFromParent();
 		this->WbpDialog = nullptr;
 	}
+}
+
+FRowDialog UDigitalBleedGameInstance::FindDialogByRowName(FName Name)
+{
+	if (!DT_Dialog) return *(new FRowDialog());
+	return *DT_Dialog->FindRow<FRowDialog>(Name, TEXT(""));
 }

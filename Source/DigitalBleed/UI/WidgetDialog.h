@@ -14,6 +14,7 @@ UCLASS()
 class DIGITALBLEED_API UWidgetDialog : public UUserWidget
 {
 	GENERATED_BODY()
+	virtual void NativeConstruct() override;
 
 protected:
 	UPROPERTY(BlueprintReadOnly)
@@ -31,6 +32,12 @@ public:
 
 	UPROPERTY(meta=(BindWidget), BlueprintReadOnly)
 	class UButton* Btn_Yes;
+
+	UPROPERTY()
+	class USoundBase* DialogSound;
+
+	UPROPERTY(meta=(BindWidget), BlueprintReadOnly)
+	class UImage* Image_Thumbnail;
 
 	UFUNCTION()
 	void SetDialogData(const FRowDialog& NewDialogData);

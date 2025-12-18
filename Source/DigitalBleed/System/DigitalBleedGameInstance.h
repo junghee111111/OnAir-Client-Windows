@@ -51,7 +51,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
 	UDataTable* DT_Modal = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Level Streaming")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
+	UDataTable* DT_Dialog = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Level Streaming")
 	FName LevelToStream = NAME_None;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Level Streaming")
@@ -81,6 +84,9 @@ protected:
 	
 	UPROPERTY()
 	UAudioComponent* CurrentBGMAudioComponent = nullptr;
+
+	UPROPERTY()
+	UAudioComponent* CurrentDialogAudioComponent = nullptr;
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 GlobalOption_BGMVolume = 50;
@@ -128,6 +134,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void PlayBGM(USoundBase* BGMToPlay);
+	void PlayDialogSound(USoundBase* DialogSound);
 
 	UFUNCTION(BlueprintCallable)
 	void ShowModal(FRowModal Modal);
@@ -140,4 +147,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void HideDialog();
+
+	UFUNCTION(BlueprintCallable)
+	FRowDialog FindDialogByRowName(FName Name);
 };
