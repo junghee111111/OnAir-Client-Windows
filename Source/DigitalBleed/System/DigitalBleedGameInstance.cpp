@@ -9,6 +9,8 @@
 #include "UI/WidgetModal.h"
 #include "MoviePlayer.h"
 #include "Components/AudioComponent.h"
+#include "Internationalization/StringTable.h"
+#include "Internationalization/StringTableCore.h"
 
 constexpr int32 Z_INDEX_LOADING_SCREEN_FAKER = 100;
 constexpr int32 Z_INDEX_MODAL = 50;
@@ -295,6 +297,9 @@ void UDigitalBleedGameInstance::ShowDialog(FRowDialog Dialog)
 			this->WbpDialog = CreateWidget<class UWidgetDialog>(PC, this->WbpDialogClass);
 			this->WbpDialog->SetDialogData(Dialog);
 			this->WbpDialog->AddToViewport(Z_INDEX_DIALOG);
+
+			PC->SetInputMode(FInputModeUIOnly());
+			PC->bShowMouseCursor = true;
 		}
 	}
 }
@@ -305,6 +310,13 @@ void UDigitalBleedGameInstance::HideDialog()
 	{
 		this->WbpDialog->RemoveFromParent();
 		this->WbpDialog = nullptr;
+
+		APlayerController* PC = GetFirstLocalPlayerController();
+		if (PC)
+		{
+			PC->SetInputMode(FInputModeGameOnly());
+			PC->bShowMouseCursor = false;
+		}
 	}
 }
 
@@ -312,4 +324,27 @@ FRowDialog UDigitalBleedGameInstance::FindDialogByRowName(FName Name)
 {
 	if (!DT_Dialog) return *(new FRowDialog());
 	return *DT_Dialog->FindRow<FRowDialog>(Name, TEXT(""));
+}
+
+FString UDigitalBleedGameInstance::GetUIString(FText RowKey)
+{
+	if (!ST_UI)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[GameInstance] : ST_UI is not assigned!"));
+		return FString(TEXT(""));
+	}
+
+	FStringTableEntryConstPtr StringData = ST_UI->GetStringTable()->FindEntry(FTextKey(
+		RowKey.ToString()
+	));
+	
+	if (StringData.IsValid())
+	{
+		return StringData->GetSourceString();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Row '%s' not found in ST_UI!"), *RowKey.ToString());
+		return FString(TEXT(""));
+	}
 }

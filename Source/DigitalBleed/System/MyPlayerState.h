@@ -62,4 +62,10 @@ protected:
 public:
 	// Replication 설정
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetMoneyWon() const { return MoneyWon; }
+
+	UFUNCTION(BlueprintCallable)
+	float GetMoneyBTC() const { return MoneyBTC; }
 };

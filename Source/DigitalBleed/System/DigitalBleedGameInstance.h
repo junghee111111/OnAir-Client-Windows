@@ -54,6 +54,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
 	UDataTable* DT_Dialog = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
+	UStringTable* ST_UI = nullptr;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Level Streaming")
 	FName LevelToStream = NAME_None;
 
@@ -99,7 +102,24 @@ protected:
 	
 public:
 	virtual void Init() override;
+
+	UFUNCTION(BlueprintCallable)
+	AMyPlayerState* GetSavedPlayerState() const { return SavedPlayerState; }
 	
+	UFUNCTION(BlueprintCallable)
+	int32 GetYear() const { return Year; }
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetMonth() const { return Month; }
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetDay() const { return Day; }
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetHour() const { return Hour; }
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetYoil() const { return Yoil; }
 
 	UFUNCTION()
 	virtual void BeginLoadingScreen(const FString& MapName);
@@ -150,4 +170,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	FRowDialog FindDialogByRowName(FName Name);
+
+	UFUNCTION(BlueprintCallable)
+	FString GetUIString(FText RowKey);
 };
