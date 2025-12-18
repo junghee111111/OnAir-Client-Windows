@@ -9,6 +9,33 @@
 /**
  * 
  */
+
+USTRUCT(BlueprintType)
+struct FRowDialog : public FTableRowBase
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText Name;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText Body;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FString Action;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName NextRowName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* Thumbnail;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USoundBase* DialogSound;
+};
+
+
 UCLASS()
 class DIGITALBLEED_API UStructDialog : public UObject
 {

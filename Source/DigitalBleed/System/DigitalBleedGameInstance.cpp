@@ -8,6 +8,11 @@
 #include "Kismet/GameplayStatics.h"
 #include "UI/WidgetModal.h"
 #include "MoviePlayer.h"
+#include "Components/AudioComponent.h"
+
+constexpr int32 Z_INDEX_LOADING_SCREEN_FAKER = 100;
+constexpr int32 Z_INDEX_MODAL = 50;
+constexpr int32 Z_INDEX_DIALOG = 40;
 
 void UDigitalBleedGameInstance::Init()
 {
@@ -16,7 +21,6 @@ void UDigitalBleedGameInstance::Init()
 	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UDigitalBleedGameInstance::BeginLoadingScreen);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UDigitalBleedGameInstance::EndLoadingScreen);
 
-	this->FakeLoadingScreenInit();
 }
 
 void UDigitalBleedGameInstance::FakeLoadingScreenInit()
@@ -24,12 +28,11 @@ void UDigitalBleedGameInstance::FakeLoadingScreenInit()
 	//Faker init.
 	if (this->WbpLoadingScreenFakerClass)
 	{
-		if (!this->WbpLoadingScreenFaker)
-		{
-			this->WbpLoadingScreenFaker = CreateWidget<class UWidgetLoadingScreen>(
-				this, this->WbpLoadingScreenFakerClass, TEXT("LoadingScreenFaker"));
-			this->WbpLoadingScreenFaker->AddToViewport();
-		}
+		UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Loading screen faker created."));
+		APlayerController* PC = GetFirstLocalPlayerController();
+		this->WbpLoadingScreenFaker = CreateWidget<class UWidgetLoadingScreen>(
+			PC, this->WbpLoadingScreenFakerClass, TEXT("LoadingScreenFaker"));
+		this->WbpLoadingScreenFaker->AddToViewport(Z_INDEX_LOADING_SCREEN_FAKER);
 	}
 }
 
@@ -62,12 +65,15 @@ void UDigitalBleedGameInstance::BeginLoadingScreen(const FString& MapName)
 
 void UDigitalBleedGameInstance::EndLoadingScreen(UWorld* InLoadedWorld)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Loading screen ended."));
 	if (InLoadedWorld)
 	{
 		FTimerHandle TimerHandle;
 		this->FakeLoadingScreenInit();
+		UE_LOG(LogTemp, Log, TEXT("[GameInstance] : Loading screen try to vanish.."));
 		InLoadedWorld->GetTimerManager().SetTimer(TimerHandle, [this]()
 		{
+			UE_LOG(LogTemp, Log, TEXT("[GameInstance] : Loading screen has been vanished."));
 			this->WbpLoadingScreenFaker->Hide();
 		}, 2.0f, false);
 	}
@@ -98,6 +104,16 @@ void UDigitalBleedGameInstance::InitGamePlayerLoggedIn()
 
 void UDigitalBleedGameInstance::JustOpenMap(FName MapName)
 {
+	// BGM 페이드 아웃
+	if (CurrentBGMAudioComponent && CurrentBGMAudioComponent->IsPlaying())
+	{
+		// 1초 동안 페이드 아웃
+		CurrentBGMAudioComponent->FadeOut(1.0f, 0.0f);
+		
+		// 또는 즉시 정지
+		// CurrentBGMAudioComponent->Stop();
+	}
+	this->FakeLoadingScreenInit();
 	this->WbpLoadingScreenFaker->Show();
 	FTimerHandle TimerHandle;
 	this->GetTimerManager().SetTimer(TimerHandle, [this,MapName]()
@@ -203,11 +219,22 @@ void UDigitalBleedGameInstance::PlayBGM(USoundBase* BGMToPlay)
 		return;
 	}
 
+	// 기존 BGM이 재생 중이면 정지
+	if (CurrentBGMAudioComponent && CurrentBGMAudioComponent->IsPlaying())
+	{
+		CurrentBGMAudioComponent->Stop();
+	}
+
 	// 볼륨 계산 (0-100 범위를 0.0-1.0으로 변환)
 	float VolumeMultiplier = GlobalOption_BGMVolume / 100.0f;
 
-	// BGM 재생 (2D 사운드로, 루프 설정)
-	UGameplayStatics::PlaySound2D(this, BGMToPlay, VolumeMultiplier);
+	// BGM 재생 (2D 사운드로, 루프 설정) - AudioComponent 반환받기
+	CurrentBGMAudioComponent = UGameplayStatics::SpawnSound2D(this, BGMToPlay, VolumeMultiplier, 1.0f, 0.0f, nullptr, true, false);
+	
+	if (CurrentBGMAudioComponent)
+	{
+		CurrentBGMAudioComponent->Play();
+	}
 }
 
 void UDigitalBleedGameInstance::ShowModal(FRowModal Modal)
@@ -219,7 +246,7 @@ void UDigitalBleedGameInstance::ShowModal(FRowModal Modal)
 		{
 			this->WbpModal = CreateWidget<class UWidgetModal>(PC, this->WbpModalClass);
 			this->WbpModal->SetModalData(Modal);
-			this->WbpModal->AddToViewport(50);
+			this->WbpModal->AddToViewport(Z_INDEX_MODAL);
 		}
 	}
 }
@@ -230,5 +257,28 @@ void UDigitalBleedGameInstance::HideModal()
 	{
 		this->WbpModal->RemoveFromParent();
 		this->WbpModal = nullptr;
+	}
+}
+
+void UDigitalBleedGameInstance::ShowDialog(FRowDialog Modal)
+{
+	APlayerController* PC = GetFirstLocalPlayerController();
+	if (PC->IsValidLowLevel())
+	{
+		if (!this->WbpDialog && this->WbpDialogClass)
+		{
+			this->WbpDialog = CreateWidget<class UWidgetDialog>(PC, this->WbpDialogClass);
+			this->WbpDialog->SetDialogData(Modal);
+			this->WbpDialog->AddToViewport(Z_INDEX_DIALOG);
+		}
+	}
+}
+
+void UDigitalBleedGameInstance::HideDialog()
+{
+	if (this->WbpDialog->IsInViewport())
+	{
+		this->WbpDialog->RemoveFromParent();
+		this->WbpDialog = nullptr;
 	}
 }

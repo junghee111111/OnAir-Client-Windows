@@ -10,5 +10,6 @@ void UWidgetLoadingScreen::Hide()
 
 void UWidgetLoadingScreen::Show()
 {
+	UE_LOG(LogTemp, Log, TEXT("[WidgetLoadingScreen] Showing Loading Screen"));
 	this->PlayAnimation(this->AnimShow);
 }

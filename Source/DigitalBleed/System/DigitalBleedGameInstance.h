@@ -4,8 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "MyPlayerState.h"
+#include "Data/StructDialog.h"
 #include "Data/StructModal.h"
 #include "Engine/GameInstance.h"
+#include "UI/WidgetDialog.h"
 #include "UI/WidgetLoadingScreen.h"
 #include "UI/WidgetMainMenu.h"
 #include "UI/WidgetModal.h"
@@ -41,6 +43,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
 	TSubclassOf<UWidgetModal> WbpModalClass;
 
+	UPROPERTY()
+	UWidgetDialog* WbpDialog = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
+	TSubclassOf<UWidgetDialog> WbpDialogClass;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
 	UDataTable* DT_Modal = nullptr;
 
@@ -68,11 +75,21 @@ protected:
 	UPROPERTY()
 	TObjectPtr<AMyPlayerState> SavedPlayerState;
 
+	// ==============================
+	// SOUNDS
+	// ==============================
+	
+	UPROPERTY()
+	UAudioComponent* CurrentBGMAudioComponent = nullptr;
+
 	UPROPERTY(BlueprintReadOnly)
 	int32 GlobalOption_BGMVolume = 50;
 	
 	UPROPERTY(BlueprintReadOnly)
-	int32 GlobalOption_FXVolume = 50;
+	int32 GlobalOption_FXVolume = 70;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 GlobalOption_DialogVolume = 100;
 	
 public:
 	virtual void Init() override;
@@ -97,6 +114,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Level Streaming")
 	void StreamMap(FName MapName);
+	
 	void ProcessLoadLevel();
 
 	UFUNCTION()
@@ -116,4 +134,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void HideModal();
+
+	UFUNCTION(BlueprintCallable)
+	void ShowDialog(FRowDialog Modal);
+
+	UFUNCTION(BlueprintCallable)
+	void HideDialog();
 };
