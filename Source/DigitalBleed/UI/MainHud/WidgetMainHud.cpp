@@ -10,6 +10,7 @@ void UWidgetMainHud::NativeConstruct()
 {
 	Super::NativeConstruct();
 	this->UpdateHud();
+	this->PlayShowAnim();
 }
 
 void UWidgetMainHud::PlayShowAnim()
