@@ -238,7 +238,7 @@ void UDigitalBleedGameInstance::PlayBGM(USoundBase* BGMToPlay)
 
 void UDigitalBleedGameInstance::PlayDialogSound(USoundBase* DialogSound)
 {
-	if (!DialogSound || DialogSound->IsValidLowLevel())
+	if (!DialogSound || !DialogSound->IsValidLowLevel())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Invalid Dialog sound provided!"));
 		return;
