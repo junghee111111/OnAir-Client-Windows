@@ -19,7 +19,7 @@ constexpr int32 Z_INDEX_DIALOG = 40;
 void UDigitalBleedGameInstance::Init()
 {
 	Super::Init();
-
+	SavedPlayerState = NewObject<AMyPlayerState>(this);
 	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UDigitalBleedGameInstance::BeginLoadingScreen);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UDigitalBleedGameInstance::EndLoadingScreen);
 
@@ -121,7 +121,7 @@ void UDigitalBleedGameInstance::JustOpenMap(FName MapName)
 	this->GetTimerManager().SetTimer(TimerHandle, [this,MapName]()
 	{
 		UGameplayStatics::OpenLevel(this, MapName);
-	}, 2.0f, false);
+	}, 1.0f, false);
 	
 }
 
