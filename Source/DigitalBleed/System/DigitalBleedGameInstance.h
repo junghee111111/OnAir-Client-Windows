@@ -7,10 +7,12 @@
 #include "Data/StructDialog.h"
 #include "Data/StructModal.h"
 #include "Engine/GameInstance.h"
+#include "UI/WidgetCycleTransition.h"
 #include "UI/WidgetDialog.h"
 #include "UI/WidgetLoadingScreen.h"
 #include "UI/WidgetMainMenu.h"
 #include "UI/WidgetModal.h"
+#include "UI/MainHud/WidgetMainHud.h"
 #include "DigitalBleedGameInstance.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGlobalEvent, FString, StringParameter);
@@ -29,6 +31,11 @@ protected:
 	TSubclassOf<UWidgetLoadingScreen> WbpLoadingScreenClass;
 
 	UPROPERTY()
+	UWidgetMainHud* WbpMainHud = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
+	TSubclassOf<UWidgetMainHud> WbpMainHudClass;
+
+	UPROPERTY()
 	UWidgetLoadingScreen* WbpLoadingScreenFaker = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
 	TSubclassOf<UWidgetLoadingScreen> WbpLoadingScreenFakerClass;
@@ -43,6 +50,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
 	TSubclassOf<UWidgetModal> WbpModalClass;
 
+	UPROPERTY()
+	UWidgetCycleTransition* WbpCycleTransition = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
+	TSubclassOf<UWidgetCycleTransition> WbpCycleTransitionClass;
+	
 	UPROPERTY()
 	UWidgetDialog* WbpDialog = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
@@ -60,6 +72,12 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Level Streaming")
 	FName LevelToStream = NAME_None;
 
+	UPROPERTY(BlueprintReadOnly)
+	FString NextPos = "0";
+
+	UPROPERTY(BlueprintReadOnly)
+	FString NextSeq = "";
+
 	UPROPERTY(BlueprintReadOnly, Category = "Level Streaming")
 	bool bIsStreaming;
 
@@ -73,7 +91,7 @@ protected:
 	int32 Yoil = 3;
 
 	UPROPERTY(BlueprintReadOnly)
-	int32 Year = 2016;
+	int32 Year = 2014;
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 Hour = 0;
@@ -130,9 +148,15 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnGlobalEvent OnGlobalEvent;
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void DoGlobalEvent(FString StringParameter);
-	
+
+	UFUNCTION(BlueprintCallable)
+	void ShowMainHud();
+
+	UFUNCTION(BlueprintCallable)
+	void HideMainHud();
+
 	virtual void InitGamePlayerLoggedIn();
 
 	UFUNCTION(BlueprintCallable)
@@ -140,6 +164,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Level Streaming")
 	void StreamMap(FName MapName);
+
+	UFUNCTION(BlueprintCallable, Category = "Level Streaming")
+	void SetNextPos(FString newPos);
+
+	UFUNCTION(BlueprintCallable, Category = "Level Streaming")
+	void SetNextSeq(FString newSeq);
+
+	UFUNCTION(BlueprintCallable)
+	FString GetCycleText(int32 Cycle);
 	
 	void ProcessLoadLevel();
 

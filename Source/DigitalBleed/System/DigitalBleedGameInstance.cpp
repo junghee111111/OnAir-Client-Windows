@@ -15,6 +15,7 @@
 constexpr int32 Z_INDEX_LOADING_SCREEN_FAKER = 100;
 constexpr int32 Z_INDEX_MODAL = 50;
 constexpr int32 Z_INDEX_DIALOG = 40;
+constexpr int32 Z_INDEX_MAIN_HUD = 30;
 
 void UDigitalBleedGameInstance::Init()
 {
@@ -95,6 +96,59 @@ void UDigitalBleedGameInstance::DoGlobalEvent(FString StringParameter)
 			UE_LOG(LogTemp, Log, TEXT("New PlayerState created successfully"));
 		}
 		this->JustOpenMap("/Game/Level/Level_House");
+	} else if (StringParameter == "ProceedCycle")
+	{
+		if (WbpCycleTransitionClass->IsValidLowLevel())
+		{
+			if (!WbpCycleTransition)
+			{
+				this->WbpCycleTransition = CreateWidget<class UWidgetCycleTransition>(
+					this, WbpCycleTransitionClass, TEXT("CycleTransition"));
+				WbpCycleTransition->AddToViewport(Z_INDEX_LOADING_SCREEN_FAKER);
+			}
+			WbpCycleTransition->PlayCycleTransitionAnim();
+
+			FTimerHandle Th;
+			this->GetTimerManager().SetTimer(Th, [this]()
+			{
+				this->Hour++;
+				if (this->WbpMainHud->IsValidLowLevel())
+				{
+					this->WbpMainHud->UpdateHud();
+				}
+			},1.0f, false);
+		}
+	}
+}
+
+void UDigitalBleedGameInstance::ShowMainHud()
+{
+	UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Show Main HUD"));
+	if (WbpMainHudClass->IsValidLowLevel())
+	{
+		if (!WbpMainHud->IsValidLowLevel())
+		{
+			WbpMainHud = CreateWidget<class UWidgetMainHud>(
+				this, WbpMainHudClass, TEXT("MainHud"));
+		}
+		if (!WbpMainHud->IsInViewport())
+		{
+			WbpMainHud->AddToViewport(Z_INDEX_MAIN_HUD);
+		}
+		WbpMainHud->UpdateHud();
+		WbpMainHud->PlayShowAnim();
+	}
+}
+
+void UDigitalBleedGameInstance::HideMainHud()
+{
+	if (WbpMainHudClass->IsValidLowLevel())
+	{
+		if (WbpMainHud->IsValidLowLevel())
+		{
+			WbpMainHud->UpdateHud();
+			WbpMainHud->PlayHideAnim();
+		}
 	}
 }
 
@@ -106,15 +160,6 @@ void UDigitalBleedGameInstance::InitGamePlayerLoggedIn()
 
 void UDigitalBleedGameInstance::JustOpenMap(FName MapName)
 {
-	// BGM 페이드 아웃
-	if (CurrentBGMAudioComponent && CurrentBGMAudioComponent->IsPlaying())
-	{
-		// 1초 동안 페이드 아웃
-		CurrentBGMAudioComponent->FadeOut(1.0f, 0.0f);
-		
-		// 또는 즉시 정지
-		// CurrentBGMAudioComponent->Stop();
-	}
 	this->FakeLoadingScreenInit();
 	this->WbpLoadingScreenFaker->Show();
 	FTimerHandle TimerHandle;
@@ -170,6 +215,31 @@ void UDigitalBleedGameInstance::StreamMap(FName MapName)
 	
 }
 
+void UDigitalBleedGameInstance::SetNextPos(FString newPos)
+{
+	this->NextPos = newPos;
+}
+
+void UDigitalBleedGameInstance::SetNextSeq(FString newSeq)
+{
+	this->NextSeq = newSeq;
+}
+
+FString UDigitalBleedGameInstance::GetCycleText(int32 Cycle)
+{
+	switch (Cycle)
+	{
+	case 0: return this->GetUIString(FText::FromString("HUD_MORNING"));
+	case 1: return this->GetUIString(FText::FromString("HUD_BRUNCH"));
+	case 2: return this->GetUIString(FText::FromString("HUD_LUNCH"));
+	case 3: return this->GetUIString(FText::FromString("HUD_EVENING"));
+	case 4: return this->GetUIString(FText::FromString("HUD_AFTERSCHOOL"));
+	case 5: return this->GetUIString(FText::FromString("HUD_DINNER"));
+	case 6: return this->GetUIString(FText::FromString("HUD_NIGHT"));
+	default: return "";
+	}
+}
+
 void UDigitalBleedGameInstance::ProcessLoadLevel()
 {
 	bIsStreaming = true;
@@ -214,28 +284,43 @@ void UDigitalBleedGameInstance::ShowNewGameModal()
 
 void UDigitalBleedGameInstance::PlayBGM(USoundBase* BGMToPlay)
 {
+	//UE_LOG(LogTemp, Warning, TEXT("[GameInstance::PlayBGM] : Function Called!"));
 	if (!BGMToPlay)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Invalid BGM sound provided!"));
+		//UE_LOG(LogTemp, Warning, TEXT("[GameInstance::PlayBGM] : Invalid BGM sound provided!"));
 		return;
 	}
 
-	// 기존 BGM이 재생 중이면 정지
+	// Null 체크 추가 및 재생 중인지 확인
+	if (CurrentBGMAudioComponent && CurrentBGMAudioComponent->IsValidLowLevel() && 
+		CurrentBGMAudioComponent->Sound == BGMToPlay && 
+		CurrentBGMAudioComponent->IsPlaying())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameInstance::PlayBGM] : BGM is same.. Ignored!"));
+		return;
+	}
+
+	// BGM 페이드 아웃
 	if (CurrentBGMAudioComponent && CurrentBGMAudioComponent->IsPlaying())
 	{
-		CurrentBGMAudioComponent->Stop();
+		// 1초 동안 페이드 아웃
+		//UE_LOG(LogTemp, Warning, TEXT("[GameInstance::PlayBGM] : Fade out previous BGM."));
+		CurrentBGMAudioComponent->FadeOut(1.0f, 0.0f);
 	}
 
 	// 볼륨 계산 (0-100 범위를 0.0-1.0으로 변환)
-	float VolumeMultiplier = GlobalOption_BGMVolume / 100.0f;
-
-	// BGM 재생 (2D 사운드로, 루프 설정) - AudioComponent 반환받기
-	CurrentBGMAudioComponent = UGameplayStatics::SpawnSound2D(this, BGMToPlay, VolumeMultiplier, 1.0f, 0.0f, nullptr, true, false);
 	
-	if (CurrentBGMAudioComponent)
+	
+	
+	FTimerHandle Th;
+	//(LogTemp, Warning, TEXT("[GameInstance::PlayBGM] : Play BGM shit"));
+	this->GetTimerManager().SetTimer(Th, [this,BGMToPlay]()
 	{
-		CurrentBGMAudioComponent->Play();
-	}
+		UE_LOG(LogTemp, Warning, TEXT("[GameInstance::PlayBGM] : Play BGM Callback function shit called."));
+		float VolumeMultiplier = this->GlobalOption_BGMVolume / 100.0f;
+		CurrentBGMAudioComponent = UGameplayStatics::SpawnSound2D(this, BGMToPlay, VolumeMultiplier, 1.0f, 0.0f, nullptr, true, false);
+		if (CurrentBGMAudioComponent) this->CurrentBGMAudioComponent->Play();
+	},1.0f, false);
 }
 
 void UDigitalBleedGameInstance::PlayDialogSound(USoundBase* DialogSound)

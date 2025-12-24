@@ -15,12 +15,12 @@ void UWidgetMainHud::NativeConstruct()
 
 void UWidgetMainHud::PlayShowAnim()
 {
-	this->PlayAnimation(this->AnimShow);
+	this->PlayAnimation(this->AnimShow, 0);
 }
 
 void UWidgetMainHud::PlayHideAnim()
 {
-	this->PlayAnimation(this->AnimHide);
+	this->PlayAnimation(this->AnimHide, 0);
 }
 
 void UWidgetMainHud::UpdateHud()
@@ -29,28 +29,7 @@ void UWidgetMainHud::UpdateHud()
 	this->Text_BTC->SetText(FText::FromString(FString::SanitizeFloat(GI->GetSavedPlayerState()->GetMoneyBTC())));
 	this->Text_Won->SetText(FText::FromString(FString::FromInt(GI->GetSavedPlayerState()->GetMoneyWon())));
 	
-	if (GI->GetHour() == 0)
-	{
-		this->Text_Cycle->SetText(FText::FromString(GI->GetUIString(FText::FromString("HUD_MORNING"))));
-	} else if (GI->GetHour() == 1)
-	{
-		this->Text_Cycle->SetText(FText::FromString(GI->GetUIString(FText::FromString("HUD_BRUNCH"))));
-	} else if (GI->GetHour() == 2)
-	{
-		this->Text_Cycle->SetText(FText::FromString(GI->GetUIString(FText::FromString("HUD_LUNCH"))));
-	} else if (GI->GetHour() == 3)
-	{
-		this->Text_Cycle->SetText(FText::FromString(GI->GetUIString(FText::FromString("HUD_EVENING"))));
-	} else if (GI->GetHour() == 4)
-	{
-		this->Text_Cycle->SetText(FText::FromString(GI->GetUIString(FText::FromString("HUD_AFTERSCHOOL"))));
-	} else if (GI->GetHour() == 5)
-	{
-		this->Text_Cycle->SetText(FText::FromString(GI->GetUIString(FText::FromString("HUD_DINNER"))));
-	} else if (GI->GetHour() == 6)
-	{
-		this->Text_Cycle->SetText(FText::FromString(GI->GetUIString(FText::FromString("HUD_NIGHT"))));
-	}
+	this->Text_Cycle->SetText(FText::FromString(GI->GetCycleText(GI->GetHour())));
 
 	FText TextYoil = FText::FromString("");
 	if (GI->GetYoil() == 0)
