@@ -27,7 +27,7 @@ class DIGITALBLEED_API UDigitalBleedGameInstance : public UGameInstance
 	GENERATED_BODY()
 
 	void FakeLoadingScreenInit();
-	TArray<int32> UDigitalBleedGameInstance::CalculateNextDay();
+	TArray<int32> CalculateNextDay() const;
 	
 protected:
 	UPROPERTY()

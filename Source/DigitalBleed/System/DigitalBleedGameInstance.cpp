@@ -157,11 +157,11 @@ void UDigitalBleedGameInstance::DoGlobalEvent(FString StringParameter)
 			FTimerHandle Th;
 			this->GetTimerManager().SetTimer(Th, [this]()
 			{
-				TArray<int32> nextDayInfo = this->CalculateNextDay();
+				TArray<int32> NextDayInfo = this->CalculateNextDay();
 				this->Hour = 0;
-				this->Month = nextDayInfo[0];
-				this->Day = nextDayInfo[1];
-				this->Yoil = nextDayInfo[2];
+				this->Month = NextDayInfo[0];
+				this->Day = NextDayInfo[1];
+				this->Yoil = NextDayInfo[2];
 				
 				this->OnCycleChanged.Broadcast(FString::FromInt(0));
 				if (this->WbpMainHud->IsValidLowLevel())
@@ -392,7 +392,7 @@ NSLOCTEXT("Game", "DateFormat", "{0}/{1}/{2} ({3})"),
  * 내일 날짜를 계산한다.
  * @return [내일 월, 내일 일, 내일 요일]
  */
-TArray<int32> UDigitalBleedGameInstance::CalculateNextDay()
+TArray<int32> UDigitalBleedGameInstance::CalculateNextDay() const
 {
 	int32 nextMonth = this->GetMonth();
 	int32 nextDay = this->GetDay() + 1;
