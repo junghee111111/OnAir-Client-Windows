@@ -191,10 +191,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Level Streaming")
 	void StreamMap(FName MapName);
 
-	UFUNCTION(BlueprintCallable, Category = "Level Streaming")
+	UFUNCTION(BlueprintCallable)
+	FString GetNextPos();
+
+	UFUNCTION(BlueprintCallable)
 	void SetNextPos(FString newPos);
 
-	UFUNCTION(BlueprintCallable, Category = "Level Streaming")
+	UFUNCTION(BlueprintCallable)
 	void SetNextSeq(FString newSeq);
 
 	UFUNCTION(BlueprintCallable)

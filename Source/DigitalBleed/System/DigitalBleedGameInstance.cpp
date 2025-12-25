@@ -239,6 +239,11 @@ void UDigitalBleedGameInstance::StreamMap(FName MapName)
 	
 }
 
+FString UDigitalBleedGameInstance::GetNextPos()
+{
+	return this->NextPos;
+}
+
 void UDigitalBleedGameInstance::SetNextPos(FString newPos)
 {
 	this->NextPos = newPos;
