@@ -11,6 +11,8 @@
 #include "Components/AudioComponent.h"
 #include "Internationalization/StringTable.h"
 #include "Internationalization/StringTableCore.h"
+#include "Runtime/LevelSequence/Public/LevelSequenceDirector.h"
+#include "Runtime/LevelSequence/Public/LevelSequencePlayer.h"
 
 constexpr int32 Z_INDEX_LOADING_SCREEN_FAKER = 100;
 constexpr int32 Z_INDEX_MODAL = 50;
@@ -37,6 +39,11 @@ void UDigitalBleedGameInstance::FakeLoadingScreenInit()
 			PC, this->WbpLoadingScreenFakerClass, TEXT("LoadingScreenFaker"));
 		this->WbpLoadingScreenFaker->AddToViewport(Z_INDEX_LOADING_SCREEN_FAKER);
 	}
+}
+
+void UDigitalBleedGameInstance::SetGlobalOption_BGMVolume(int32 Volume)
+{
+	this->GlobalOption_BGMVolume = Volume;
 }
 
 void UDigitalBleedGameInstance::BeginLoadingScreen(const FString& MapName)
@@ -104,8 +111,9 @@ void UDigitalBleedGameInstance::DoGlobalEvent(FString StringParameter)
 			{
 				this->WbpCycleTransition = CreateWidget<class UWidgetCycleTransition>(
 					this, WbpCycleTransitionClass, TEXT("CycleTransition"));
-				WbpCycleTransition->AddToViewport(Z_INDEX_LOADING_SCREEN_FAKER);
 			}
+			// 씨발 이렇게 안하면 반복적으로 안뜨네
+			if (!WbpCycleTransition->IsInViewport()) WbpCycleTransition->AddToViewport(Z_INDEX_LOADING_SCREEN_FAKER);
 			WbpCycleTransition->PlayCycleTransitionAnim();
 
 			FTimerHandle Th;
@@ -386,6 +394,10 @@ void UDigitalBleedGameInstance::ShowDialog(FRowDialog Dialog)
 			PC->SetInputMode(FInputModeUIOnly());
 			PC->bShowMouseCursor = true;
 		}
+		if (this->LevelSequenceDirector->IsValidLowLevel())
+		{
+			this->LevelSequenceDirector->Player->Pause();
+		}
 	}
 }
 
@@ -401,6 +413,10 @@ void UDigitalBleedGameInstance::HideDialog()
 		{
 			PC->SetInputMode(FInputModeGameOnly());
 			PC->bShowMouseCursor = false;
+		}
+		if (this->LevelSequenceDirector->IsValidLowLevel())
+		{
+			this->LevelSequenceDirector->Player->Play();
 		}
 	}
 }
@@ -427,9 +443,20 @@ FString UDigitalBleedGameInstance::GetUIString(FText RowKey)
 	{
 		return StringData->GetSourceString();
 	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Row '%s' not found in ST_UI!"), *RowKey.ToString());
-		return FString(TEXT(""));
-	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Row '%s' not found in ST_UI!"), *RowKey.ToString());
+	return FString(TEXT(""));
+}
+
+// ==============================
+// Global Level Sequence Director
+// ==============================
+void UDigitalBleedGameInstance::SetLevelSequenceDirector(ULevelSequenceDirector* NewDirector)
+{
+	this->LevelSequenceDirector = NewDirector;
+}
+
+void UDigitalBleedGameInstance::ResetLevelSequenceDirector()
+{
+	this->LevelSequenceDirector = nullptr;
 }

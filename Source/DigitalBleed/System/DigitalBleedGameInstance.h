@@ -15,6 +15,7 @@
 #include "UI/MainHud/WidgetMainHud.h"
 #include "DigitalBleedGameInstance.generated.h"
 
+class ULevelSequenceDirector;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGlobalEvent, FString, StringParameter);
 
 UCLASS()
@@ -117,6 +118,9 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 GlobalOption_DialogVolume = 100;
+
+	UPROPERTY(BlueprintReadOnly)
+	ULevelSequenceDirector* LevelSequenceDirector = nullptr;
 	
 public:
 	virtual void Init() override;
@@ -138,6 +142,15 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	int32 GetYoil() const { return Yoil; }
+
+	UFUNCTION(BlueprintCallable)
+	void SetGlobalOption_BGMVolume(int32 Volume);
+
+	UFUNCTION(BlueprintCallable)
+	void SetLevelSequenceDirector(ULevelSequenceDirector* NewDirector);
+
+	UFUNCTION(BlueprintCallable)
+	void ResetLevelSequenceDirector();
 
 	UFUNCTION()
 	virtual void BeginLoadingScreen(const FString& MapName);

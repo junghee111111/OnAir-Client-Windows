@@ -4,43 +4,29 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
-#include "StructDialog.generated.h"
-
-/**
- * 
- */
+#include "StructSelection.generated.h"
 
 USTRUCT(BlueprintType)
-struct FRowDialog : public FTableRowBase
+struct FRowSelection : public FTableRowBase
 {
 	GENERATED_BODY()
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FText Name;
+	FText Title;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FText Body;
+	TArray<FText> Body;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FString Action;
+	TArray<FText> Actions;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName NextRowName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName NextSelectionName;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UTexture2D* Thumbnail;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	USoundBase* DialogSound;
 };
 
-
 UCLASS()
-class DIGITALBLEED_API UStructDialog : public UObject
+class DIGITALBLEED_API UStructSelection : public UObject
 {
 	GENERATED_BODY()
 };
