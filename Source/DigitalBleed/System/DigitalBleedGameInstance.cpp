@@ -413,6 +413,10 @@ void UDigitalBleedGameInstance::ShowDialog(FRowDialog Dialog)
 		{
 			this->WbpDialog->AddToViewport(Z_INDEX_DIALOG);
 		}
+		if (this->WbpDialogSelection->IsValidLowLevel() && this->WbpDialogSelection->IsInViewport())
+		{
+			this->HideDialogSelection();
+		}
 		this->WbpDialog->SetDialogData(Dialog);
 		if (this->LevelSequenceDirector->IsValidLowLevel())
 		{

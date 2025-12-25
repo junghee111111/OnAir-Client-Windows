@@ -4,6 +4,7 @@
 #include "WidgetDialogSelectionButton.h"
 
 #include "Components/Button.h"
+#include "Components/TextBlock.h"
 #include "System/DigitalBleedGameInstance.h"
 
 void UWidgetDialogSelectionButton::NativeConstruct()
@@ -25,4 +26,6 @@ void UWidgetDialogSelectionButton::SetSelectionData(const FText& NewButtonText, 
 {
 	this->ButtonText = NewButtonText;
 	this->ButtonAction = NewButtonAction;
+
+	this->ButtonLabel->SetText(this->ButtonText);
 }

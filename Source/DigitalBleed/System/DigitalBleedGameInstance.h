@@ -18,6 +18,7 @@
 #include "DigitalBleedGameInstance.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGlobalEvent, FString, StringParameter);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCycleChanged, FString, StringParameter);
 
 UCLASS()
 class DIGITALBLEED_API UDigitalBleedGameInstance : public UGameInstance
@@ -169,6 +170,9 @@ public:
 	
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnGlobalEvent OnGlobalEvent;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnGlobalEvent OnCycleChanged;
 
 	UFUNCTION(BlueprintCallable)
 	void DoGlobalEvent(FString StringParameter);
