@@ -1,5 +1,5 @@
 ﻿// Copyright 2025, Ducksoo Games. All RIghts Reserved.
-
+// 2025.12.25 Written by Junghee Wang.
 
 #include "WidgetDialogSelection.h"
 
@@ -24,6 +24,7 @@ void UWidgetDialogSelection::SetSelectionData(const FRowSelection& NewSelectionD
 		UWidgetDialogSelectionButton* WbpButton = CreateWidget<class UWidgetDialogSelectionButton>(PC,WbpDialogSelectionButtonClass);
 		WbpButton->SetSelectionData(this->SelectionData.Body[i], this->SelectionData.Actions[i]);
 		this->VBox_Selections->AddChildToVerticalBox(WbpButton);
+		if (i==0) WbpButton->SetFocus();
 	}
 }
 

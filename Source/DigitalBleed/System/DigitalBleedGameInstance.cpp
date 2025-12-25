@@ -135,6 +135,7 @@ void UDigitalBleedGameInstance::DoGlobalEvent(FString StringParameter)
 			this->GetTimerManager().SetTimer(Th, [this]()
 			{
 				this->Hour++;
+				this->OnCycleChanged.Broadcast(FString::FromInt(this->Hour));
 				if (this->WbpMainHud->IsValidLowLevel())
 				{
 					this->WbpMainHud->UpdateHud();
