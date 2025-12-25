@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "WidgetDialogSelectionButton.h"
 #include "Blueprint/UserWidget.h"
 #include "Data/StructSelection.h"
 #include "WidgetDialogSelection.generated.h"
@@ -19,6 +20,11 @@ class DIGITALBLEED_API UWidgetDialogSelection : public UUserWidget
 protected:
 	UPROPERTY(BlueprintReadOnly)
 	FRowSelection SelectionData;
+
+	UPROPERTY()
+	UWidgetDialogSelectionButton* WbpDialogSelectionButton = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
+	TSubclassOf<UWidgetDialogSelectionButton> WbpDialogSelectionButtonClass;
 
 public:
 	UPROPERTY(meta=(BindWidget), BlueprintReadOnly)

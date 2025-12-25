@@ -20,7 +20,10 @@ public class DigitalBleed : ModuleRules
 			"UMG",
 			"Slate",
 			"SlateCore",
-			"MoviePlayer"
+			"MoviePlayer",
+			"MovieScene",           // 추가
+			"LevelSequence",        // 추가
+			"MovieSceneTracks"      // 추가 (선택사항)
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

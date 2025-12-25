@@ -46,6 +46,21 @@ void UWidgetDialog::SetDialogData(const FRowDialog& NewDialogData)
 	this->Text_Body->SetText(DialogData.Body);
 	this->Image_Thumbnail->SetBrushFromTexture(DialogData.Thumbnail);
 	GameInstance->PlayDialogSound(DialogData.DialogSound);
+
+	if (DialogData.NextSelectionName.IsNone())
+	{
+		this->Btn_Yes->SetVisibility(ESlateVisibility::Visible);
+	}else
+	{
+		this->Btn_Yes->SetVisibility(ESlateVisibility::Hidden);
+		const FRowSelection FoundSelection = GameInstance->FindDialogSelectionByRowName(this->DialogData.NextSelectionName);
+		GameInstance->ShowDialogSelection(FoundSelection);
+	}
+
+	if (!DialogData.Action.IsEmpty())
+	{
+		GameInstance->DoGlobalEvent(DialogData.Action);
+	}
 }
 
 FRowDialog& UWidgetDialog::GetDialogData()

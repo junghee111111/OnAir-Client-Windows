@@ -13,20 +13,13 @@
 #include "Internationalization/StringTableCore.h"
 #include "Runtime/LevelSequence/Public/LevelSequenceDirector.h"
 #include "Runtime/LevelSequence/Public/LevelSequencePlayer.h"
+#include "MovieSceneSequencePlayer.h" 
 
 constexpr int32 Z_INDEX_LOADING_SCREEN_FAKER = 100;
 constexpr int32 Z_INDEX_MODAL = 50;
 constexpr int32 Z_INDEX_DIALOG = 40;
+constexpr int32 Z_INDEX_DIALOG_SELECTION = 45;
 constexpr int32 Z_INDEX_MAIN_HUD = 30;
-
-void UDigitalBleedGameInstance::Init()
-{
-	Super::Init();
-	SavedPlayerState = NewObject<AMyPlayerState>(this);
-	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UDigitalBleedGameInstance::BeginLoadingScreen);
-	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UDigitalBleedGameInstance::EndLoadingScreen);
-
-}
 
 void UDigitalBleedGameInstance::FakeLoadingScreenInit()
 {
@@ -41,9 +34,31 @@ void UDigitalBleedGameInstance::FakeLoadingScreenInit()
 	}
 }
 
+void UDigitalBleedGameInstance::Init()
+{
+	Super::Init();
+	SavedPlayerState = NewObject<AMyPlayerState>(this);
+	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UDigitalBleedGameInstance::BeginLoadingScreen);
+	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UDigitalBleedGameInstance::EndLoadingScreen);
+
+}
+
 void UDigitalBleedGameInstance::SetGlobalOption_BGMVolume(int32 Volume)
 {
 	this->GlobalOption_BGMVolume = Volume;
+}
+
+// ==============================
+// Global Level Sequence Director
+// ==============================
+void UDigitalBleedGameInstance::SetLevelSequenceDirector(ULevelSequenceDirector* NewDirector)
+{
+	this->LevelSequenceDirector = NewDirector;
+}
+
+void UDigitalBleedGameInstance::ResetLevelSequenceDirector()
+{
+	this->LevelSequenceDirector = nullptr;
 }
 
 void UDigitalBleedGameInstance::BeginLoadingScreen(const FString& MapName)
@@ -357,6 +372,9 @@ void UDigitalBleedGameInstance::PlayDialogSound(USoundBase* DialogSound)
 	}
 }
 
+// ==============================
+// Global UI Controls
+// ==============================
 void UDigitalBleedGameInstance::ShowModal(FRowModal Modal)
 {
 	APlayerController* PC = GetFirstLocalPlayerController();
@@ -385,15 +403,17 @@ void UDigitalBleedGameInstance::ShowDialog(FRowDialog Dialog)
 	APlayerController* PC = GetFirstLocalPlayerController();
 	if (PC->IsValidLowLevel())
 	{
+		PC->SetInputMode(FInputModeUIOnly());
+		PC->bShowMouseCursor = true;
 		if (!this->WbpDialog && this->WbpDialogClass)
 		{
 			this->WbpDialog = CreateWidget<class UWidgetDialog>(PC, this->WbpDialogClass);
-			this->WbpDialog->SetDialogData(Dialog);
-			this->WbpDialog->AddToViewport(Z_INDEX_DIALOG);
-
-			PC->SetInputMode(FInputModeUIOnly());
-			PC->bShowMouseCursor = true;
 		}
+		if (!this->WbpDialog->IsInViewport())
+		{
+			this->WbpDialog->AddToViewport(Z_INDEX_DIALOG);
+		}
+		this->WbpDialog->SetDialogData(Dialog);
 		if (this->LevelSequenceDirector->IsValidLowLevel())
 		{
 			this->LevelSequenceDirector->Player->Pause();
@@ -421,10 +441,42 @@ void UDigitalBleedGameInstance::HideDialog()
 	}
 }
 
+void UDigitalBleedGameInstance::ShowDialogSelection(FRowSelection Selection)
+{
+	APlayerController* PC = GetFirstLocalPlayerController();
+	if (PC->IsValidLowLevel())
+	{
+		if (!this->WbpDialogSelection && this->WbpDialogSelectionClass)
+		{
+			this->WbpDialogSelection = CreateWidget<class UWidgetDialogSelection>(PC, this->WbpDialogSelectionClass);
+			this->WbpDialogSelection->SetSelectionData(Selection);
+		}
+		if (!this->WbpDialogSelection->IsInViewport())
+		{
+			this->WbpDialogSelection->AddToViewport(Z_INDEX_DIALOG_SELECTION);
+		}
+	}
+}
+
+void UDigitalBleedGameInstance::HideDialogSelection()
+{
+	if (this->WbpDialogSelection->IsInViewport())
+	{
+		this->WbpDialogSelection->RemoveFromParent();
+		this->WbpDialogSelection = nullptr;
+	}
+}
+
 FRowDialog UDigitalBleedGameInstance::FindDialogByRowName(FName Name)
 {
-	if (!DT_Dialog) return *(new FRowDialog());
+	if (!this->DT_Dialog) return *(new FRowDialog());
 	return *DT_Dialog->FindRow<FRowDialog>(Name, TEXT(""));
+}
+
+FRowSelection UDigitalBleedGameInstance::FindDialogSelectionByRowName(FName Name)
+{
+	if (!this->DT_Selection) return *(new FRowSelection());
+	return *DT_Selection->FindRow<FRowSelection>(Name, TEXT(""));
 }
 
 FString UDigitalBleedGameInstance::GetUIString(FText RowKey)
@@ -446,17 +498,4 @@ FString UDigitalBleedGameInstance::GetUIString(FText RowKey)
 	
 	UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Row '%s' not found in ST_UI!"), *RowKey.ToString());
 	return FString(TEXT(""));
-}
-
-// ==============================
-// Global Level Sequence Director
-// ==============================
-void UDigitalBleedGameInstance::SetLevelSequenceDirector(ULevelSequenceDirector* NewDirector)
-{
-	this->LevelSequenceDirector = NewDirector;
-}
-
-void UDigitalBleedGameInstance::ResetLevelSequenceDirector()
-{
-	this->LevelSequenceDirector = nullptr;
 }

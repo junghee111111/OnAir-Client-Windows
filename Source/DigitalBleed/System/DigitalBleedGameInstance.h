@@ -3,19 +3,20 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "LevelSequenceDirector.h"
 #include "MyPlayerState.h"
 #include "Data/StructDialog.h"
 #include "Data/StructModal.h"
 #include "Engine/GameInstance.h"
 #include "UI/WidgetCycleTransition.h"
 #include "UI/WidgetDialog.h"
+#include "UI/WidgetDialogSelection.h"
 #include "UI/WidgetLoadingScreen.h"
 #include "UI/WidgetMainMenu.h"
 #include "UI/WidgetModal.h"
 #include "UI/MainHud/WidgetMainHud.h"
 #include "DigitalBleedGameInstance.generated.h"
 
-class ULevelSequenceDirector;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGlobalEvent, FString, StringParameter);
 
 UCLASS()
@@ -61,8 +62,16 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
 	TSubclassOf<UWidgetDialog> WbpDialogClass;
 
+	UPROPERTY()
+	UWidgetDialogSelection* WbpDialogSelection = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
+	TSubclassOf<UWidgetDialogSelection> WbpDialogSelectionClass;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
 	UDataTable* DT_Modal = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
+	UDataTable* DT_Selection = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
 	UDataTable* DT_Dialog = nullptr;
@@ -215,7 +224,16 @@ public:
 	void HideDialog();
 
 	UFUNCTION(BlueprintCallable)
+	void ShowDialogSelection(FRowSelection Selection);
+
+	UFUNCTION(BlueprintCallable)
+	void HideDialogSelection();
+	
+	UFUNCTION(BlueprintCallable)
 	FRowDialog FindDialogByRowName(FName Name);
+
+	UFUNCTION(BlueprintCallable)
+	FRowSelection FindDialogSelectionByRowName(FName Name);
 
 	UFUNCTION(BlueprintCallable)
 	FString GetUIString(FText RowKey);
