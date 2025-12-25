@@ -383,7 +383,7 @@ NSLOCTEXT("Game", "DateFormat", "{0}/{1}/{2} ({3})"),
 		FText::FromString(FString::FromInt(this->GetYear())),
 		FText::AsNumber(nextDayInfo[0]),
 		FText::AsNumber(nextDayInfo[1]),
-		nextDayInfo[2]
+		TextYoil
 		);
 }
 
