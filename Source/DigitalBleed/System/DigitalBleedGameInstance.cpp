@@ -142,6 +142,34 @@ void UDigitalBleedGameInstance::DoGlobalEvent(FString StringParameter)
 				}
 			},1.0f, false);
 		}
+	} else if (StringParameter == "ProceedDay")
+	{
+		if (WbpDayTransition->IsValidLowLevel())
+		{
+			if (!WbpDayTransition)
+			{
+				this->WbpDayTransition = CreateWidget<class UWidgetDayTransition>(
+					this, WbpDayTransitionClass, TEXT("DayTransition"));
+			}
+			if (!WbpDayTransition->IsInViewport()) WbpDayTransition->AddToViewport(Z_INDEX_LOADING_SCREEN_FAKER);
+			WbpDayTransition->PlayTransitionAnim();
+
+			FTimerHandle Th;
+			this->GetTimerManager().SetTimer(Th, [this]()
+			{
+				TArray<int32> nextDayInfo = this->CalculateNextDay();
+				this->Hour = 0;
+				this->Month = nextDayInfo[0];
+				this->Day = nextDayInfo[1];
+				this->Yoil = nextDayInfo[2];
+				
+				this->OnCycleChanged.Broadcast(FString::FromInt(0));
+				if (this->WbpMainHud->IsValidLowLevel())
+				{
+					this->WbpMainHud->UpdateHud();
+				}
+			},1.0f, false);
+		}
 	}
 }
 
@@ -267,6 +295,134 @@ FString UDigitalBleedGameInstance::GetCycleText(int32 Cycle)
 	case 6: return this->GetUIString(FText::FromString("HUD_NIGHT"));
 	default: return "";
 	}
+}
+
+/**
+ * 2025.12.25 Written By Junghee Wang
+ * @return Today FText Ex) 1999/1/1 (월)
+ */
+FText UDigitalBleedGameInstance::GetTodayText()
+{
+	FText TextYoil = FText::FromString("");
+	switch (this->GetYoil())
+	{
+	case 0:
+		TextYoil = FText::FromString(this->GetUIString(FText::FromString("HUD_SUNDAY")));
+		break;
+	case 1:
+		TextYoil = FText::FromString(this->GetUIString(FText::FromString("HUD_MONDAY")));
+		break;
+	case 2:
+		TextYoil = FText::FromString(this->GetUIString(FText::FromString("HUD_TUESDAY")));
+		break;
+	case 3:
+		TextYoil = FText::FromString(this->GetUIString(FText::FromString("HUD_WEDNESDAY")));
+		break;
+	case 4:
+		TextYoil = FText::FromString(this->GetUIString(FText::FromString("HUD_THURSDAY")));
+		break;
+	case 5:
+		TextYoil = FText::FromString(this->GetUIString(FText::FromString("HUD_FRIDAY")));
+		break;
+	case 6:
+		TextYoil = FText::FromString(this->GetUIString(FText::FromString("HUD_SATURDAY")));
+		break;
+	default:
+		break;
+	}
+	
+	return FText::Format(
+NSLOCTEXT("Game", "DateFormat", "{0}/{1}/{2} ({3})"),
+		FText::FromString(FString::FromInt(this->GetYear())),
+		FText::AsNumber(this->GetMonth()),
+		FText::AsNumber(this->GetDay()),
+		TextYoil
+		);
+}
+
+/**
+ * 2025.12.25 Written By Junghee Wang
+ * Calculate next day.
+ * Calculation for day of week is based on 2014/3/3 Monday.
+ * @return Tommorow FText Ex) 1999/1/2 (화)
+ */
+FText UDigitalBleedGameInstance::GetTommorowText()
+{
+	FText TextYoil = FText::FromString("");
+	TArray<int32> nextDayInfo = this->CalculateNextDay();
+	
+	switch (nextDayInfo[2])
+	{
+	case 0:
+		TextYoil = FText::FromString(this->GetUIString(FText::FromString("HUD_SUNDAY")));
+		break;
+	case 1:
+		TextYoil = FText::FromString(this->GetUIString(FText::FromString("HUD_MONDAY")));
+		break;
+	case 2:
+		TextYoil = FText::FromString(this->GetUIString(FText::FromString("HUD_TUESDAY")));
+		break;
+	case 3:
+		TextYoil = FText::FromString(this->GetUIString(FText::FromString("HUD_WEDNESDAY")));
+		break;
+	case 4:
+		TextYoil = FText::FromString(this->GetUIString(FText::FromString("HUD_THURSDAY")));
+		break;
+	case 5:
+		TextYoil = FText::FromString(this->GetUIString(FText::FromString("HUD_FRIDAY")));
+		break;
+	case 6:
+		TextYoil = FText::FromString(this->GetUIString(FText::FromString("HUD_SATURDAY")));
+		break;
+	default:
+		break;
+	}
+	
+	return FText::Format(
+NSLOCTEXT("Game", "DateFormat", "{0}/{1}/{2} ({3})"),
+		FText::FromString(FString::FromInt(this->GetYear())),
+		FText::AsNumber(nextDayInfo[0]),
+		FText::AsNumber(nextDayInfo[1]),
+		nextDayInfo[2]
+		);
+}
+
+/**
+ * 2025.12.25 Written by Junghee Wang
+ * 내일 날짜를 계산한다.
+ * @return [내일 월, 내일 일, 내일 요일]
+ */
+TArray<int32> UDigitalBleedGameInstance::CalculateNextDay()
+{
+	int32 nextMonth = this->GetMonth();
+	int32 nextDay = this->GetDay() + 1;
+	int32 nextYoil = this->GetYoil() + 1;
+
+	TArray<int32> thirtyoneDays = {1, 3, 5, 7, 8, 10, 12};
+    
+	// 31일이 있는 달
+	if (nextDay == 32 && thirtyoneDays.Contains(this->GetMonth()))
+	{
+		nextMonth++;
+		nextDay = 1;
+	}
+	// 30일이 있는 달 (2월 제외)
+	else if (nextDay == 31 && !thirtyoneDays.Contains(this->GetMonth()) && this->GetMonth() != 2)
+	{
+		nextMonth++;
+		nextDay = 1;
+	}
+	// 2월 처리 (평년 28일 가정)
+	else if (nextDay == 29 && this->GetMonth() == 2)
+	{
+		nextMonth++;
+		nextDay = 1;
+	}
+
+	if (nextMonth > 12) nextMonth = 1;
+	if (nextYoil > 6) nextYoil = 0;
+
+	return TArray<int32>{nextMonth, nextDay, nextYoil};
 }
 
 void UDigitalBleedGameInstance::ProcessLoadLevel()

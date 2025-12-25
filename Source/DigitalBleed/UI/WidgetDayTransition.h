@@ -4,16 +4,18 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "WidgetCycleTransition.generated.h"
+#include "WidgetDayTransition.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class DIGITALBLEED_API UWidgetCycleTransition : public UUserWidget
+class DIGITALBLEED_API UWidgetDayTransition : public UUserWidget
 {
 	GENERATED_BODY()
 	virtual void NativeConstruct() override;
+	
+	
 
 protected:
 	UPROPERTY(meta=(BindWidget), BlueprintReadOnly)
@@ -27,5 +29,5 @@ protected:
 
 public:
 	UFUNCTION(BlueprintCallable)
-	void PlayCycleTransitionAnim();
+	void PlayTransitionAnim();
 };

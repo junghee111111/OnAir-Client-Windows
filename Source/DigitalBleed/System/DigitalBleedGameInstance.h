@@ -9,6 +9,7 @@
 #include "Data/StructModal.h"
 #include "Engine/GameInstance.h"
 #include "UI/WidgetCycleTransition.h"
+#include "UI/WidgetDayTransition.h"
 #include "UI/WidgetDialog.h"
 #include "UI/WidgetDialogSelection.h"
 #include "UI/WidgetLoadingScreen.h"
@@ -26,6 +27,7 @@ class DIGITALBLEED_API UDigitalBleedGameInstance : public UGameInstance
 	GENERATED_BODY()
 
 	void FakeLoadingScreenInit();
+	TArray<int32> UDigitalBleedGameInstance::CalculateNextDay();
 	
 protected:
 	UPROPERTY()
@@ -57,6 +59,11 @@ protected:
 	UWidgetCycleTransition* WbpCycleTransition = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
 	TSubclassOf<UWidgetCycleTransition> WbpCycleTransitionClass;
+
+	UPROPERTY()
+	UWidgetDayTransition* WbpDayTransition = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
+	TSubclassOf<UWidgetDayTransition> WbpDayTransitionClass;
 	
 	UPROPERTY()
 	UWidgetDialog* WbpDialog = nullptr;
@@ -96,10 +103,10 @@ protected:
 	int32 Month = 3;
 
 	UPROPERTY(BlueprintReadOnly)
-	int32 Day = 2;
+	int32 Day = 3;
 
 	UPROPERTY(BlueprintReadOnly)
-	int32 Yoil = 3;
+	int32 Yoil = 1;
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 Year = 2014;
@@ -202,7 +209,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	FString GetCycleText(int32 Cycle);
-	
+	FText GetTodayText();
+	FText GetTommorowText();
+
 	void ProcessLoadLevel();
 
 	UFUNCTION()
