@@ -144,7 +144,7 @@ void UDigitalBleedGameInstance::DoGlobalEvent(FString StringParameter)
 		}
 	} else if (StringParameter == "ProceedDay")
 	{
-		if (WbpDayTransition->IsValidLowLevel())
+		if (WbpDayTransitionClass->IsValidLowLevel())
 		{
 			if (!WbpDayTransition)
 			{

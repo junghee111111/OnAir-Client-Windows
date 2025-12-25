@@ -11,8 +11,8 @@ void UWidgetDayTransition::NativeConstruct()
 	Super::NativeConstruct();
 	UDigitalBleedGameInstance* GI = GetGameInstance<class UDigitalBleedGameInstance>();
 	
-	this->Text_Now->SetText(FText::FromString(GI->GetCycleText(GI->GetHour())));
-	this->Text_Next->SetText(FText::FromString(GI->GetCycleText(GI->GetHour()+1)));
+	this->Text_Now->SetText(GI->GetTodayText());
+	this->Text_Next->SetText(GI->GetTommorowText());
 }
 
 void UWidgetDayTransition::PlayTransitionAnim()
