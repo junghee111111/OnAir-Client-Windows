@@ -54,6 +54,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UCapsuleComponent* CapsuleComponent = nullptr;
 
+	UPROPERTY()
+	FVector TargetLocation = FVector(0,0,0);
+
+	UPROPERTY()
+	FRotator TargetRotation = FRotator(0,0,0);
+
+	UPROPERTY()
+	bool bIsMovingToTarget = false;
 
 public:
 	// Called every frame

@@ -3,6 +3,8 @@
 
 #include "BattleMainCam.h"
 
+#include "Kismet/KismetMathLibrary.h"
+
 
 // Sets default values
 ABattleMainCam::ABattleMainCam()
@@ -27,8 +29,13 @@ ABattleMainCam::ABattleMainCam()
 
 void ABattleMainCam::SeePlayerBack(FVector Pos)
 {
-	this->SetActorLocation(Pos);
-	
+	this->SpringArm->TargetArmLength = 300.0f;
+	TargetLocation = Pos;
+
+	FRotator Rot = UKismetMathLibrary::FindLookAtRotation(Pos, FVector(0,0,0));
+	TargetRotation = Rot;
+
+	bIsMovingToTarget = true;
 }
 
 void ABattleMainCam::SeeEnemyBackToPlayer()
@@ -41,6 +48,8 @@ void ABattleMainCam::SeePlayerBackToEnemy()
 
 void ABattleMainCam::StartRotation()
 {
+	this->SpringArm->TargetArmLength = 1000.0f;
+	this->bIsMovingToTarget = false;
 	this->IsRotating = true;
 }
 
@@ -74,6 +83,25 @@ void ABattleMainCam::Tick(float DeltaTime)
 			nullptr,
 			ETeleportType::None
 		);
+	}
+
+	if (bIsMovingToTarget)
+	{
+		// 부드럽게 위치 보간 (InterpSpeed 값이 클수록 빠름, 보통 5.0f ~ 10.0f)
+		FVector NewLocation = FMath::VInterpTo(GetActorLocation(), TargetLocation, DeltaTime, 5.0f);
+		SetActorLocation(NewLocation);
+		
+		// 부드럽게 회전 보간
+		FRotator NewRotation = FMath::RInterpTo(GetActorRotation(), TargetRotation, DeltaTime, 5.0f);
+		SetActorRotation(NewRotation);
+		
+		// 목표에 거의 도달하면 정확히 설정하고 중지
+		if (FVector::Dist(GetActorLocation(), TargetLocation) < 1.0f)
+		{
+			SetActorLocation(TargetLocation);
+			SetActorRotation(TargetRotation);
+			bIsMovingToTarget = false;
+		}
 	}
 }
 

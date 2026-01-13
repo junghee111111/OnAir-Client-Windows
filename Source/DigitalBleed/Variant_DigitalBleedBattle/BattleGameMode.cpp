@@ -48,21 +48,7 @@ void ABattleGameMode::PostLogin(APlayerController* NewPlayer)
 	Super::PostLogin(NewPlayer);
 	
 	RegisterPlayerController(NewPlayer);
-	if (PlayerControllers.Num() == 1)
-	{
-		NewPlayer->SetInputMode(FInputModeUIOnly());
-		NewPlayer->bShowMouseCursor = true;
-		SpawnPlayers();
-	}
-	CalculatePartyOrder();
-
-	CurrentTurnPlayer = PartyOrder[0];
 	
-	FTimerHandle TimerHandle;
-	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
-	{
-		this->InitNewTurn();
-	}, 2.0f, false);
 }
 
 AActor* ABattleGameMode::GetPlayerStartByIndex(int32 PlayerIndex) const
@@ -117,7 +103,7 @@ void ABattleGameMode::SpawnPlayers()
 	TArray<AActor*> PlayerStarts;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), PlayerStarts);
 	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
-
+	
 	for (int32 i = 1; i < GI->GetPartyLength(); ++i) // 나를 제외하기 위해 i를 1부터 시작시킴
 	{
 		FActorSpawnParameters SpawnParams;
@@ -218,12 +204,39 @@ void ABattleGameMode::InitializeUI()
 void ABattleGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+	TArray<AActor*> PlayerStarts;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), PlayerStarts);
+	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
+	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
+	
 	if (PlayerControllers.Num() > 0)
 	{
 		this->InitializeMainCamera();
 		this->InitializeUI();
 	}
 	
+	// 첫 번째 플레이어(나) 추가
+	if (IsValid(FirstPC))
+	{
+		FirstPC->SetInputMode(FInputModeUIOnly());
+		FirstPC->bShowMouseCursor = true;
+		ALifeHuman* MyLifeHuman = Cast<ALifeHuman>(FirstPC->GetPawn());
+		if (IsValid(MyLifeHuman))
+		{
+			MyLifeHuman->PlayerCode = GI->GetPartyMembers()[0]; // 첫 번째 PlayerCode 설정
+			PartyMembers.Add(MyLifeHuman);
+		}
+		SpawnPlayers();
+	}
+	CalculatePartyOrder();
+
+	CurrentTurnPlayer = PartyOrder[0];
+	
+	FTimerHandle TimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
+	{
+		this->InitNewTurn();
+	}, 2.0f, false);
 }
 
 void ABattleGameMode::CalculatePartyOrder()
@@ -254,10 +267,12 @@ void ABattleGameMode::EndTurn()
 
 void ABattleGameMode::InitNewTurn()
 {
+	UE_LOG(LogTemp, Warning, TEXT("BattleGameMode :: InitNewTurn of %s"), *CurrentTurnPlayer);
 	ALifeHuman* CurrentTurnLife = AccessLifeByPlayerCode(CurrentTurnPlayer);
 	if (IsValid(CurrentTurnLife))
 	{
 		this->MainCam->SeePlayerBack(CurrentTurnLife->GetActorLocation());
+		this->MainCam->StopRotation();
 	}
 }
 
