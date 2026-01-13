@@ -3,8 +3,8 @@
 
 #include "Life.h"
 
-#include "LifeEquipComponent.h"
-#include "LifeStatComponent.h"
+#include "./Component/LifeEquipComponent.h"
+#include "./Component/LifeStatComponent.h"
 #include "Components/CapsuleComponent.h"
 
 

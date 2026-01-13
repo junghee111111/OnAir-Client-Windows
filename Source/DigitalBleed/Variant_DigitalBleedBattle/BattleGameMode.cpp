@@ -1,13 +1,14 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
+﻿// 2026.01.13 재작성 시작, Written By Junghee Wang
 
 #include "BattleGameMode.h"
 
 #include "BattleGamePlayerState.h"
+#include "Battle/LifeHuman.h"
 #include "Battle/Camera/BattleMainCam.h"
 #include "Camera/CameraActor.h"
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
+#include "System/DigitalBleedGameInstance.h"
 #include "UI/Battle/WholeBattleUI.h"
 
 ABattleGameMode::ABattleGameMode()
@@ -53,6 +54,15 @@ void ABattleGameMode::PostLogin(APlayerController* NewPlayer)
 		NewPlayer->bShowMouseCursor = true;
 		SpawnPlayers();
 	}
+	CalculatePartyOrder();
+
+	CurrentTurnPlayer = PartyOrder[0];
+	
+	FTimerHandle TimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
+	{
+		this->InitNewTurn();
+	}, 2.0f, false);
 }
 
 AActor* ABattleGameMode::GetPlayerStartByIndex(int32 PlayerIndex) const
@@ -106,8 +116,9 @@ void ABattleGameMode::SpawnPlayers()
 {
 	TArray<AActor*> PlayerStarts;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), PlayerStarts);
+	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
 
-	for (int32 i = 1; i < MaxPlayersNum; ++i) // 나를 제외하기 위해 i를 1부터 시작시킴
+	for (int32 i = 1; i < GI->GetPartyLength(); ++i) // 나를 제외하기 위해 i를 1부터 시작시킴
 	{
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
@@ -127,6 +138,12 @@ void ABattleGameMode::SpawnPlayers()
 			this->RegisterPlayerController(PC);
 			FTransform SpawnTransform = StartSpot->GetActorTransform();
 			AActor* SpawnedCharacter = GetWorld()->SpawnActor(DefaultPawnClass, &SpawnTransform, SpawnParams);
+			ALifeHuman* LifeHuman = Cast<ALifeHuman>(SpawnedCharacter);
+			if (IsValid(LifeHuman))
+			{
+				LifeHuman->PlayerCode = GI->GetPartyMembers()[i];
+				PartyMembers.Add(LifeHuman);
+			}
 
 			UE_LOG(
 			LogTemp, Warning,
@@ -151,7 +168,7 @@ void ABattleGameMode::RegisterPlayerController(APlayerController* PC)
 	}
 }
 
-void ABattleGameMode::InitializeMainCamera() const
+void ABattleGameMode::InitializeMainCamera()
 {
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
 	if (!IsValid(PC))
@@ -177,7 +194,8 @@ void ABattleGameMode::InitializeMainCamera() const
 			);
 			BattleMainCam->SetPitch(-10.0f);
 			BattleMainCam->StartRotation();
-			UE_LOG(LogTemp, Warning, TEXT("BattleGameMode :: MainCam Initialized!"));
+			//UE_LOG(LogTemp, Warning, TEXT("BattleGameMode :: MainCam Initialized!"));
+			this->MainCam = BattleMainCam;
 			return;
 		}
 	}
@@ -206,4 +224,48 @@ void ABattleGameMode::BeginPlay()
 		this->InitializeUI();
 	}
 	
+}
+
+void ABattleGameMode::CalculatePartyOrder()
+{
+	// order party member as Spd desc order
+	PartyOrder.Empty();
+	TArray<ALifeHuman*> SortedMembers = PartyMembers;
+
+	SortedMembers.Sort([](const ALifeHuman& A, const ALifeHuman& B)
+	{
+		return A.LifeStatComponent->GetSpd() > B.LifeStatComponent->GetSpd();
+	});
+	
+	for (int i = 0; i < SortedMembers.Num(); i++)
+	{
+		PartyOrder.Add(SortedMembers[i]->PlayerCode);
+	}
+}
+
+void ABattleGameMode::EndTurn()
+{
+	this->TurnCount++;
+	this->CurrentTurnPlayer = PartyOrder[TurnCount % PartyOrder.Num()];
+	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
+	GI->ShowToast(FText::FromString("DEBUG_ENDTURN"));
+	this->InitNewTurn();
+}
+
+void ABattleGameMode::InitNewTurn()
+{
+	ALifeHuman* CurrentTurnLife = AccessLifeByPlayerCode(CurrentTurnPlayer);
+	if (IsValid(CurrentTurnLife))
+	{
+		this->MainCam->SeePlayerBack(CurrentTurnLife->GetActorLocation());
+	}
+}
+
+ALifeHuman* ABattleGameMode::AccessLifeByPlayerCode(FString PlayerCode)
+{
+	for (ALifeHuman* LifeHuman : PartyMembers)
+	{
+		if (LifeHuman->PlayerCode == PlayerCode) return LifeHuman;
+	}
+	return nullptr;
 }

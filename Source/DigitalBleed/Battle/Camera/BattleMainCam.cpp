@@ -25,8 +25,10 @@ ABattleMainCam::ABattleMainCam()
 	
 }
 
-void ABattleMainCam::SeePlayerBack()
+void ABattleMainCam::SeePlayerBack(FVector Pos)
 {
+	this->SetActorLocation(Pos);
+	
 }
 
 void ABattleMainCam::SeeEnemyBackToPlayer()

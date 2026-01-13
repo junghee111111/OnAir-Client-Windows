@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "LifeEquipComponent.h"
-#include "LifeStatComponent.h"
+#include "./Component/LifeEquipComponent.h"
+#include "./Component/LifeStatComponent.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Character.h"
 #include "Life.generated.h"

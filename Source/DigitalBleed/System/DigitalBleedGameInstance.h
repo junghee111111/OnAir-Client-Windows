@@ -188,6 +188,12 @@ public:
 	int32 GetYoil() const { return Yoil; }
 
 	UFUNCTION(BlueprintCallable)
+	int32 GetPartyLength() const { return PartyIn.Num(); }
+
+	UFUNCTION(BlueprintCallable)
+	TArray<FString> GetPartyMembers() const { return PartyIn; }
+
+	UFUNCTION(BlueprintCallable)
 	void SetGlobalOption_BGMVolume(int32 Volume);
 
 	UFUNCTION(BlueprintCallable)
