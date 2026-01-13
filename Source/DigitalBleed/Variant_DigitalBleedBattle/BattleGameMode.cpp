@@ -50,6 +50,7 @@ void ABattleGameMode::PostLogin(APlayerController* NewPlayer)
 	if (PlayerControllers.Num() == 1)
 	{
 		NewPlayer->SetInputMode(FInputModeUIOnly());
+		NewPlayer->bShowMouseCursor = true;
 		SpawnPlayers();
 	}
 }

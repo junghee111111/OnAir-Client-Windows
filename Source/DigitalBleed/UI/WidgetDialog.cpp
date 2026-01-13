@@ -26,6 +26,7 @@ void UWidgetDialog::OnBtnYesClicked()
 		if (GameInstance)
 		{
 			GameInstance->OnGlobalEvent.Broadcast(DialogData.Action);
+			GameInstance->DoGlobalEvent(DialogData.Action);
 		}
 	}
 	if (!this->DialogData.NextRowName.IsNone())
@@ -44,7 +45,7 @@ void UWidgetDialog::SetDialogData(const FRowDialog& NewDialogData)
 	this->DialogData = NewDialogData;
 	this->Text_Name->SetText(this->DialogData.Name);
 	this->Text_Body->SetText(DialogData.Body);
-	this->Image_Thumbnail->SetBrushFromTexture(DialogData.Thumbnail);
+	if (DialogData.Thumbnail->IsValidLowLevel()) this->Image_Thumbnail->SetBrushFromTexture(DialogData.Thumbnail);
 	GameInstance->PlayDialogSound(DialogData.DialogSound);
 
 	if (DialogData.NextSelectionName.IsNone())
@@ -55,11 +56,6 @@ void UWidgetDialog::SetDialogData(const FRowDialog& NewDialogData)
 		this->Btn_Yes->SetVisibility(ESlateVisibility::Hidden);
 		const FRowSelection FoundSelection = GameInstance->FindDialogSelectionByRowName(this->DialogData.NextSelectionName);
 		GameInstance->ShowDialogSelection(FoundSelection);
-	}
-
-	if (!DialogData.Action.IsEmpty())
-	{
-		GameInstance->DoGlobalEvent(DialogData.Action);
 	}
 }
 

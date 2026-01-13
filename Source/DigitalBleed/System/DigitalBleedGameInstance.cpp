@@ -14,11 +14,14 @@
 #include "Runtime/LevelSequence/Public/LevelSequenceDirector.h"
 #include "Runtime/LevelSequence/Public/LevelSequencePlayer.h"
 #include "MovieSceneSequencePlayer.h" 
+#include "UI/WidgetToast.h"
 
 constexpr int32 Z_INDEX_LOADING_SCREEN_FAKER = 100;
+constexpr int32 Z_INDEX_GLOBAL_TOAST = 90;
 constexpr int32 Z_INDEX_MODAL = 50;
 constexpr int32 Z_INDEX_DIALOG = 40;
 constexpr int32 Z_INDEX_DIALOG_SELECTION = 45;
+constexpr int32 Z_INDEX_TRIAGE = 31;
 constexpr int32 Z_INDEX_MAIN_HUD = 30;
 
 void UDigitalBleedGameInstance::FakeLoadingScreenInit()
@@ -41,6 +44,8 @@ void UDigitalBleedGameInstance::Init()
 	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UDigitalBleedGameInstance::BeginLoadingScreen);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UDigitalBleedGameInstance::EndLoadingScreen);
 
+	PartyIn = {"SMR","HYJ", "JAR", "CJY"};
+	PartyOut = {"PMS", "YJS", "KSY"};
 }
 
 void UDigitalBleedGameInstance::SetGlobalOption_BGMVolume(int32 Volume)
@@ -169,6 +174,41 @@ void UDigitalBleedGameInstance::DoGlobalEvent(FString StringParameter)
 					this->WbpMainHud->UpdateHud();
 				}
 			},1.0f, false);
+		}
+	} else if (StringParameter == "InitMatrix")
+	{
+		if (WbpTransitionInitMatrixClass->IsValidLowLevel())
+		{
+			this->DoGlobalEvent("ProceedCycle");
+			this->FadeOutBGM();
+			FTimerHandle Th;
+			this->GetTimerManager().SetTimer(Th, [this]{
+				if (!WbpTransitionInitMatrix)
+				{
+					this->WbpTransitionInitMatrix = CreateWidget<class UUserWidget>(
+						this, WbpTransitionInitMatrixClass, TEXT("TransitionInitMatrix"));
+				}
+				if (!WbpTransitionInitMatrix->IsInViewport()) WbpTransitionInitMatrix->AddToViewport(Z_INDEX_LOADING_SCREEN_FAKER);
+			},3.0f, false);
+		}
+	} else if (StringParameter == "TriageExit")
+	{
+		this->DoGlobalEvent("ProceedDay");
+		this->FadeOutBGM();
+		FTimerHandle Th;
+		this->GetTimerManager().SetTimer(Th, [this]{
+			this->JustOpenMap("/Game/Level/Level_House");
+		},3.0f, false);
+	} else if (StringParameter == "ExecTriageUI")
+	{
+		if (WbpTriageClass->IsValidLowLevel())
+		{
+			if (!WbpTriage)
+			{
+				this->WbpTriage = CreateWidget<class UWidgetTriage>(
+					this, WbpTriageClass, TEXT("Triage"));
+			}
+			if (!WbpTriage->IsInViewport()) WbpTriage->AddToViewport(Z_INDEX_TRIAGE);
 		}
 	}
 }
@@ -486,16 +526,7 @@ void UDigitalBleedGameInstance::PlayBGM(USoundBase* BGMToPlay)
 	}
 
 	// BGM 페이드 아웃
-	if (CurrentBGMAudioComponent && CurrentBGMAudioComponent->IsPlaying())
-	{
-		// 1초 동안 페이드 아웃
-		//UE_LOG(LogTemp, Warning, TEXT("[GameInstance::PlayBGM] : Fade out previous BGM."));
-		CurrentBGMAudioComponent->FadeOut(1.0f, 0.0f);
-	}
-
-	// 볼륨 계산 (0-100 범위를 0.0-1.0으로 변환)
-	
-	
+	this->FadeOutBGM();
 	
 	FTimerHandle Th;
 	//(LogTemp, Warning, TEXT("[GameInstance::PlayBGM] : Play BGM shit"));
@@ -506,6 +537,24 @@ void UDigitalBleedGameInstance::PlayBGM(USoundBase* BGMToPlay)
 		CurrentBGMAudioComponent = UGameplayStatics::SpawnSound2D(this, BGMToPlay, VolumeMultiplier, 1.0f, 0.0f, nullptr, true, false);
 		if (CurrentBGMAudioComponent) this->CurrentBGMAudioComponent->Play();
 	},1.0f, false);
+}
+
+void UDigitalBleedGameInstance::PlaySFX(USoundBase* SFXToPlay)
+{
+	// Using GlobalOption_FXVolume
+	UGameplayStatics::SpawnSound2D(
+		this, SFXToPlay, this->GlobalOption_FXVolume / 100.0f, 1.0f, 0.0f,
+		nullptr, false, true);
+}
+
+void UDigitalBleedGameInstance::FadeOutBGM() const
+{
+	if (CurrentBGMAudioComponent && CurrentBGMAudioComponent->IsPlaying())
+	{
+		// 1초 동안 페이드 아웃
+		//UE_LOG(LogTemp, Warning, TEXT("[GameInstance::PlayBGM] : Fade out previous BGM."));
+		CurrentBGMAudioComponent->FadeOut(1.0f, 0.0f);
+	}
 }
 
 void UDigitalBleedGameInstance::PlayDialogSound(USoundBase* DialogSound)
@@ -565,6 +614,12 @@ void UDigitalBleedGameInstance::ShowDialog(FRowDialog Dialog)
 	APlayerController* PC = GetFirstLocalPlayerController();
 	if (PC->IsValidLowLevel())
 	{
+		if (Dialog.Body.IsEmpty() || Dialog.Body.EqualTo(FText::FromString("")))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[GameInstance] : Invalid Dialog name provided!"));
+			return;
+		}
+		
 		PC->SetInputMode(FInputModeUIOnly());
 		PC->bShowMouseCursor = true;
 		if (!this->WbpDialog && this->WbpDialogClass)
@@ -604,6 +659,10 @@ void UDigitalBleedGameInstance::HideDialog()
 		{
 			this->LevelSequenceDirector->Player->Play();
 		}
+		if (this->WbpDialogSelection->IsValidLowLevel() && this->WbpDialogSelection->IsInViewport())
+		{
+			this->HideDialogSelection();
+		}
 	}
 }
 
@@ -628,6 +687,7 @@ void UDigitalBleedGameInstance::HideDialogSelection()
 {
 	if (this->WbpDialogSelection->IsInViewport())
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Hide Dialog Selection"));
 		this->WbpDialogSelection->RemoveFromParent();
 		this->WbpDialogSelection = nullptr;
 	}
@@ -635,8 +695,20 @@ void UDigitalBleedGameInstance::HideDialogSelection()
 
 FRowDialog UDigitalBleedGameInstance::FindDialogByRowName(FName Name)
 {
-	if (!this->DT_Dialog) return *(new FRowDialog());
-	return *DT_Dialog->FindRow<FRowDialog>(Name, TEXT(""));
+	if (!this->DT_Dialog)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : DT_Dialog is null!"));
+		return FRowDialog();
+	}
+	
+	FRowDialog* FoundRow = DT_Dialog->FindRow<FRowDialog>(Name, TEXT("FindDialogByRowName"));
+	
+	if (FoundRow)
+	{
+		return *FoundRow;
+	}
+	UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Dialog row '%s' not found!"), *Name.ToString());
+	return FRowDialog();
 }
 
 FRowSelection UDigitalBleedGameInstance::FindDialogSelectionByRowName(FName Name)
@@ -664,4 +736,40 @@ FString UDigitalBleedGameInstance::GetUIString(FText RowKey)
 	
 	UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Row '%s' not found in ST_UI!"), *RowKey.ToString());
 	return FString(TEXT(""));
+}
+
+
+void UDigitalBleedGameInstance::AddPartyMember(const FString& MemberID)
+{
+	if (PartyOut.Contains(MemberID))
+	{
+		PartyOut.Remove(MemberID);
+		PartyIn.AddUnique(MemberID);
+		UE_LOG(LogTemp, Log, TEXT("[GameInstance] : Added %s to PartyIn"), *MemberID);
+	}
+}
+
+void UDigitalBleedGameInstance::RemovePartyMember(const FString& MemberID)
+{
+	if (PartyIn.Contains(MemberID))
+	{
+		PartyIn.Remove(MemberID);
+		PartyOut.AddUnique(MemberID);
+		UE_LOG(LogTemp, Log, TEXT("[GameInstance] : Removed %s from PartyIn"), *MemberID);
+	}
+}
+
+bool UDigitalBleedGameInstance::IsInParty(const FString& MemberID) const
+{
+	return PartyIn.Contains(MemberID);
+}
+
+void UDigitalBleedGameInstance::ShowToast(FText RowKey)
+{
+	if (WbpGlobalToastClass->IsValidLowLevel())
+	{
+		if (!WbpGlobalToast) WbpGlobalToast = CreateWidget<UWidgetGlobalToast>(GetWorld(), WbpGlobalToastClass);
+		if (!WbpGlobalToast->IsInViewport()) WbpGlobalToast->AddToViewport(Z_INDEX_GLOBAL_TOAST);
+		WbpGlobalToast->Show(this->GetUIString(RowKey));
+	}
 }

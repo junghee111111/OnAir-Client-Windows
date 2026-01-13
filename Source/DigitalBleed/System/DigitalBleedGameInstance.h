@@ -12,9 +12,11 @@
 #include "UI/WidgetDayTransition.h"
 #include "UI/WidgetDialog.h"
 #include "UI/WidgetDialogSelection.h"
+#include "UI/WidgetGlobalToast.h"
 #include "UI/WidgetLoadingScreen.h"
 #include "UI/WidgetMainMenu.h"
 #include "UI/WidgetModal.h"
+#include "UI/WidgetTriage.h"
 #include "UI/MainHud/WidgetMainHud.h"
 #include "DigitalBleedGameInstance.generated.h"
 
@@ -32,48 +34,63 @@ class DIGITALBLEED_API UDigitalBleedGameInstance : public UGameInstance
 protected:
 	UPROPERTY()
 	UWidgetLoadingScreen* WbpLoadingScreen = nullptr;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI")
 	TSubclassOf<UWidgetLoadingScreen> WbpLoadingScreenClass;
 
 	UPROPERTY()
 	UWidgetMainHud* WbpMainHud = nullptr;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI")
 	TSubclassOf<UWidgetMainHud> WbpMainHudClass;
 
 	UPROPERTY()
 	UWidgetLoadingScreen* WbpLoadingScreenFaker = nullptr;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI")
 	TSubclassOf<UWidgetLoadingScreen> WbpLoadingScreenFakerClass;
 
 	UPROPERTY()
 	UWidgetMainMenu* WbpMainMenu = nullptr;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI")
 	TSubclassOf<UWidgetMainMenu> WbpMainMenuClass;
 
 	UPROPERTY()
 	UWidgetModal* WbpModal = nullptr;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI")
 	TSubclassOf<UWidgetModal> WbpModalClass;
 
 	UPROPERTY()
 	UWidgetCycleTransition* WbpCycleTransition = nullptr;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI")
 	TSubclassOf<UWidgetCycleTransition> WbpCycleTransitionClass;
 
 	UPROPERTY()
 	UWidgetDayTransition* WbpDayTransition = nullptr;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI")
 	TSubclassOf<UWidgetDayTransition> WbpDayTransitionClass;
 	
 	UPROPERTY()
 	UWidgetDialog* WbpDialog = nullptr;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI")
 	TSubclassOf<UWidgetDialog> WbpDialogClass;
 
 	UPROPERTY()
 	UWidgetDialogSelection* WbpDialogSelection = nullptr;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="OnAir|UI")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI")
 	TSubclassOf<UWidgetDialogSelection> WbpDialogSelectionClass;
+
+	UPROPERTY()
+	UWidgetGlobalToast* WbpGlobalToast = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI")
+	TSubclassOf<UWidgetGlobalToast> WbpGlobalToastClass;
+
+	UPROPERTY()
+	UUserWidget* WbpTransitionInitMatrix = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI")
+	TSubclassOf<UUserWidget> WbpTransitionInitMatrixClass;
+
+	UPROPERTY()
+	UWidgetTriage* WbpTriage = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI")
+	TSubclassOf<UWidgetTriage> WbpTriageClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
 	UDataTable* DT_Modal = nullptr;
@@ -85,7 +102,17 @@ protected:
 	UDataTable* DT_Dialog = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
+	UDataTable* DT_PartyMembers = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
 	UStringTable* ST_UI = nullptr;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Party")
+	TArray<FString> PartyIn;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Party")
+	TArray<FString> PartyOut;
+
 
 	UPROPERTY(BlueprintReadOnly, Category = "Level Streaming")
 	FName LevelToStream = NAME_None;
@@ -225,6 +252,13 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void PlayBGM(USoundBase* BGMToPlay);
+
+	UFUNCTION(BlueprintCallable)
+	void PlaySFX(USoundBase* SFXToPlay);
+
+	UFUNCTION(BlueprintCallable)
+	void FadeOutBGM() const;
+	
 	void PlayDialogSound(USoundBase* DialogSound);
 
 	UFUNCTION(BlueprintCallable)
@@ -234,7 +268,7 @@ public:
 	void HideModal();
 
 	UFUNCTION(BlueprintCallable)
-	void ShowDialog(FRowDialog Modal);
+	void ShowDialog(FRowDialog Dialog);
 
 	UFUNCTION(BlueprintCallable)
 	void HideDialog();
@@ -253,4 +287,16 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	FString GetUIString(FText RowKey);
+
+	UFUNCTION(BlueprintCallable)
+	void AddPartyMember(const FString& MemberID);
+
+	UFUNCTION(BlueprintCallable)
+	void RemovePartyMember(const FString& MemberID);
+
+	UFUNCTION(BlueprintCallable)
+	bool IsInParty(const FString& MemberID) const;
+
+	UFUNCTION(BlueprintCallable)
+	void ShowToast(FText RowKey);
 };

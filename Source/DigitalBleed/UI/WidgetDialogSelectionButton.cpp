@@ -18,7 +18,13 @@ void UWidgetDialogSelectionButton::OnButtonClicked()
 	UDigitalBleedGameInstance* GI = GetGameInstance<UDigitalBleedGameInstance>();
 	if (GI)
 	{
-		GI->ShowDialog(GI->FindDialogByRowName(FName(this->ButtonAction.ToString())));
+		if (this->ButtonAction.IsEmpty())
+		{
+			GI->HideDialog();
+		} else
+		{
+			GI->ShowDialog(GI->FindDialogByRowName(FName(this->ButtonAction.ToString())));
+		}
 	}
 }
 
