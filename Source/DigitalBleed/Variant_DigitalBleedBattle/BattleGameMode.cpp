@@ -25,7 +25,8 @@ void ABattleGameMode::SpawnEnemies()
 		// Spawn at 0,0,0
 		FVector SpawnLocation = FVector(0, 0, 0);
 		FRotator SpawnRotation = FRotator(0, 0, 0);
-		GetWorld()->SpawnActor<ALifeEnemy>(this->LifeEnemies[0], SpawnLocation, SpawnRotation);
+		ALifeEnemy* Enemy = GetWorld()->SpawnActor<ALifeEnemy>(this->LifeEnemies[0], SpawnLocation, SpawnRotation);
+		Enemies.Add(Enemy);
 	}
 	if (this->LifeEnemies.Num() > 1)
 	{
@@ -37,7 +38,8 @@ void ABattleGameMode::SpawnEnemies()
 			float Angle = AngleBetweenEnemies * i;
 			FVector SpawnLocation = FVector(distance * FMath::Cos(Angle), distance * FMath::Sin(Angle), 0);
 			FRotator SpawnRotation = FRotator(0, FMath::RadiansToDegrees(Angle)-90, 0);
-			GetWorld()->SpawnActor<ALifeEnemy>(this->LifeEnemies[0], SpawnLocation, SpawnRotation);
+			ALifeEnemy* Enemy = GetWorld()->SpawnActor<ALifeEnemy>(this->LifeEnemies[0], SpawnLocation, SpawnRotation);
+			Enemies.Add(Enemy);
 		}
 	}
 }
@@ -230,13 +232,13 @@ void ABattleGameMode::BeginPlay()
 	}
 	CalculatePartyOrder();
 
-	CurrentTurnPlayer = PartyOrder[0];
+	CurrentTurnTarget = PartyOrder[0];
 	
 	FTimerHandle TimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
 	{
 		this->InitNewTurn();
-	}, 2.0f, false);
+	}, 4.0f, false);
 }
 
 void ABattleGameMode::CalculatePartyOrder()
@@ -244,31 +246,78 @@ void ABattleGameMode::CalculatePartyOrder()
 	// order party member as Spd desc order
 	PartyOrder.Empty();
 	TArray<ALifeHuman*> SortedMembers = PartyMembers;
+	TArray<ALifeEnemy*> SortedEnemies = Enemies;
+	TArray<ALife*> SortedAll = {};
 
 	SortedMembers.Sort([](const ALifeHuman& A, const ALifeHuman& B)
 	{
 		return A.LifeStatComponent->GetSpd() > B.LifeStatComponent->GetSpd();
 	});
-	
-	for (int i = 0; i < SortedMembers.Num(); i++)
+
+	SortedEnemies.Sort([](const ALifeEnemy& A, const ALifeEnemy& B)
 	{
-		PartyOrder.Add(SortedMembers[i]->PlayerCode);
+		return A.LifeStatComponent->GetSpd() > B.LifeStatComponent->GetSpd();
+	});
+
+	SortedAll.Append(SortedMembers);
+	SortedAll.Append(SortedEnemies);
+
+	SortedAll.Sort([](const ALife& A, const ALife& B)
+	{
+		return A.LifeStatComponent->GetSpd() > B.LifeStatComponent->GetSpd();
+	});
+
+	int32 MobIdx = 0;
+	for (int i = 0; i < SortedAll.Num(); i++)
+	{
+		ALifeHuman* LifeHuman = Cast<ALifeHuman>(SortedAll[i]);
+		if (IsValid(LifeHuman))
+		{
+			PartyOrder.Add(LifeHuman->PlayerCode);
+		} else
+		{
+			PartyOrder.Add(FString::Printf(TEXT("Enemy_%d"), MobIdx));
+			MobIdx++;
+		}
 	}
 }
+
+void ABattleGameMode::CTScan()
+{
+	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
+	ALifeHuman* CurrentTurnLife = AccessLifeByPlayerCode(CurrentTurnTarget);
+	check(CurrentTurnLife);
+	this->MainCam->SeePlayerBackToEnemy(CurrentTurnLife->GetActorLocation(), Enemies[0]->GetActorLocation());
+}
+
+void ABattleGameMode::CameraSeeEnemyOnly(int32 EnemyIdx)
+{
+	check(Enemies[EnemyIdx]);
+	this->MainCam->SeePlayerBack(Enemies[EnemyIdx]->GetActorLocation());
+}
+
+void ABattleGameMode::CameraSeeTurnOwner()
+{
+	ALifeHuman* CurrentTurnLife = AccessLifeByPlayerCode(CurrentTurnTarget);
+	check(CurrentTurnLife);
+	this->MainCam->SeePlayerBack(CurrentTurnLife->GetActorLocation());
+}
+
+
 
 void ABattleGameMode::EndTurn()
 {
 	this->TurnCount++;
-	this->CurrentTurnPlayer = PartyOrder[TurnCount % PartyOrder.Num()];
+	this->CurrentTurnTarget = PartyOrder[TurnCount % PartyOrder.Num()];
 	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
-	GI->ShowToast(FText::FromString("DEBUG_ENDTURN"));
+	//GI->ShowToast(FText::FromString("DEBUG_ENDTURN"));
 	this->InitNewTurn();
 }
 
 void ABattleGameMode::InitNewTurn()
 {
-	UE_LOG(LogTemp, Warning, TEXT("BattleGameMode :: InitNewTurn of %s"), *CurrentTurnPlayer);
-	ALifeHuman* CurrentTurnLife = AccessLifeByPlayerCode(CurrentTurnPlayer);
+	UE_LOG(LogTemp, Warning, TEXT("BattleGameMode :: InitNewTurn of %s"), *CurrentTurnTarget);
+	ALife* CurrentTurnLife = AccessLifeByCode(CurrentTurnTarget);
 	if (IsValid(CurrentTurnLife))
 	{
 		this->MainCam->SeePlayerBack(CurrentTurnLife->GetActorLocation());
@@ -283,4 +332,22 @@ ALifeHuman* ABattleGameMode::AccessLifeByPlayerCode(FString PlayerCode)
 		if (LifeHuman->PlayerCode == PlayerCode) return LifeHuman;
 	}
 	return nullptr;
+}
+
+ALife* ABattleGameMode::AccessLifeByCode(FString Code)
+{
+	if (Code.StartsWith("Enemy"))
+	{
+		TArray<FString> Parts;
+		Code.ParseIntoArray(Parts, TEXT("_"));
+		if (Parts.Num()>1)
+		{
+			int32 EnemyIdx = FCString::Atoi(*Parts[1]);
+			return Enemies[EnemyIdx];
+		} else
+		{
+			return nullptr;
+		}
+	}
+	return AccessLifeByPlayerCode(Code);
 }

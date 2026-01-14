@@ -26,9 +26,9 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	ULifeEquipComponent* LifeEquipComponent;
 	
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	ULifeStatComponent* LifeStatComponent;
 };

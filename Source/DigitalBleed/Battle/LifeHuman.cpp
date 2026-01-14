@@ -1,7 +1,9 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿// 2016.01.14, Written By Junghee Wang
 
 
 #include "LifeHuman.h"
+
+#include "Kismet/KismetMathLibrary.h"
 
 
 // Sets default values
@@ -15,7 +17,9 @@ ALifeHuman::ALifeHuman()
 void ALifeHuman::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	FRotator InitLookAt = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), FVector(0,0,0));
+	this->SetActorRotation(InitLookAt);
 }
 
 // Called every frame

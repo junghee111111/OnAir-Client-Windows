@@ -21,7 +21,7 @@ ABattleMainCam::ABattleMainCam()
 	this->MainCam->SetupAttachment(this->SpringArm);
 
 	
-	this->SpringArm->TargetArmLength = 1000.0f;
+	this->TargetArmLength = 1000.0f;
 	this->SpringArm->bUsePawnControlRotation = false;
 	this->SpringArm->bDoCollisionTest = false;
 	
@@ -29,10 +29,10 @@ ABattleMainCam::ABattleMainCam()
 
 void ABattleMainCam::SeePlayerBack(FVector Pos)
 {
-	this->SpringArm->TargetArmLength = 300.0f;
-	TargetLocation = Pos;
+	this->TargetArmLength = 180.0f;
+	TargetLocation = Pos + FVector(0,0,30);
 
-	FRotator Rot = UKismetMathLibrary::FindLookAtRotation(Pos, FVector(0,0,0));
+	FRotator Rot = UKismetMathLibrary::FindLookAtRotation(Pos, FVector(0,0,-100));
 	TargetRotation = Rot;
 
 	bIsMovingToTarget = true;
@@ -42,8 +42,17 @@ void ABattleMainCam::SeeEnemyBackToPlayer()
 {
 }
 
-void ABattleMainCam::SeePlayerBackToEnemy()
+void ABattleMainCam::SeePlayerBackToEnemy(FVector PlayerPos, FVector EnemyPos)
 {
+	this->TargetArmLength = 300.0f;
+	TargetLocation = PlayerPos + FVector(0,0,30);
+
+	FRotator Rot = UKismetMathLibrary::FindLookAtRotation(PlayerPos, EnemyPos-FVector(0,0,50));
+	Rot.Yaw += 30.0f; // 시계방향으로 15도정도 뺀다.
+	
+	TargetRotation = Rot;
+
+	bIsMovingToTarget = true;
 }
 
 void ABattleMainCam::StartRotation()
@@ -94,14 +103,19 @@ void ABattleMainCam::Tick(float DeltaTime)
 		// 부드럽게 회전 보간
 		FRotator NewRotation = FMath::RInterpTo(GetActorRotation(), TargetRotation, DeltaTime, 5.0f);
 		SetActorRotation(NewRotation);
+
+		float NewTargetArmLength = FMath::FInterpTo(this->SpringArm->TargetArmLength, TargetArmLength, DeltaTime, 5.0f);
+		this->SpringArm->TargetArmLength = NewTargetArmLength;
 		
 		// 목표에 거의 도달하면 정확히 설정하고 중지
-		if (FVector::Dist(GetActorLocation(), TargetLocation) < 1.0f)
+		if (FVector::Dist(GetActorLocation(), TargetLocation) < 0.01f && FMath::Abs(TargetArmLength-NewTargetArmLength) < 1.0f)
 		{
 			SetActorLocation(TargetLocation);
 			SetActorRotation(TargetRotation);
+			this->SpringArm->TargetArmLength = TargetArmLength;
 			bIsMovingToTarget = false;
 		}
+		
 	}
 }
 

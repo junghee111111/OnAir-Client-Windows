@@ -30,7 +30,7 @@ public:
 	void SeeEnemyBackToPlayer();
 
 	UFUNCTION(BlueprintCallable)
-	void SeePlayerBackToEnemy();
+	void SeePlayerBackToEnemy(FVector PlayerPos, FVector EnemyPos);
 
 	UFUNCTION(BlueprintCallable)
 	void StartRotation();
@@ -59,6 +59,9 @@ protected:
 
 	UPROPERTY()
 	FRotator TargetRotation = FRotator(0,0,0);
+
+	UPROPERTY()
+	float TargetArmLength = 1000;
 
 	UPROPERTY()
 	bool bIsMovingToTarget = false;

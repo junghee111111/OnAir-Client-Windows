@@ -43,7 +43,7 @@ protected:
 	bool bIsPlayerSideTurn = true;
 
 	UPROPERTY(BlueprintReadOnly)
-	FString CurrentTurnPlayer = "";
+	FString CurrentTurnTarget = "";
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 TurnCount = 0;
@@ -53,6 +53,9 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly)
 	TArray<ALifeHuman*> PartyMembers;
+
+	UPROPERTY(BlueprintReadOnly)
+	TArray<ALifeEnemy*> Enemies;
 
 	UPROPERTY(BlueprintReadOnly)
 	ABattleMainCam* MainCam = nullptr;
@@ -77,6 +80,15 @@ protected:
 	UFUNCTION()
 	void CalculatePartyOrder();
 
+	UFUNCTION(BlueprintCallable)
+	void CTScan();
+
+	UFUNCTION(BlueprintCallable)
+	void CameraSeeEnemyOnly(int32 EnemyIdx);
+
+	UFUNCTION(BlueprintCallable)
+	void CameraSeeTurnOwner();
+
 public:
 	UFUNCTION(BlueprintCallable)
 	void EndTurn();
@@ -85,4 +97,5 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	ALifeHuman* AccessLifeByPlayerCode(FString PlayerCode);
+	ALife* AccessLifeByCode(FString Code);
 };

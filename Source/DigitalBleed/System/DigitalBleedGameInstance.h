@@ -7,6 +7,7 @@
 #include "MyPlayerState.h"
 #include "Data/StructDialog.h"
 #include "Data/StructModal.h"
+#include "Data/StructSkill.h"
 #include "Engine/GameInstance.h"
 #include "UI/WidgetCycleTransition.h"
 #include "UI/WidgetDayTransition.h"
@@ -112,6 +113,9 @@ protected:
 
 	UPROPERTY(BlueprintReadWrite, Category = "Party")
 	TArray<FString> PartyOut;
+
+	UPROPERTY(BlueprintReadOnly, Category = "UserData")
+	TArray<FRowSkillRecord> SkillRecords;
 
 
 	UPROPERTY(BlueprintReadOnly, Category = "Level Streaming")
