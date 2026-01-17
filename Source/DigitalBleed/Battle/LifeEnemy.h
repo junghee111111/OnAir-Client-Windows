@@ -6,6 +6,8 @@
 #include "Life.h"
 #include "LifeEnemy.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStartTurn);
+
 UCLASS()
 class DIGITALBLEED_API ALifeEnemy : public ALife
 {
@@ -19,7 +21,19 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	bool bIsMyTurn;
+
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	UFUNCTION(BlueprintCallable)
+	void SetMyTurn(bool New_bIsMyTurn);
+
+	UFUNCTION(BlueprintCallable)
+	bool IsMyTurn() const { return bIsMyTurn; }
+
+	UPROPERTY(BlueprintAssignable, Category = "Turn")
+	FOnStartTurn DispatcherStartTurn;
 };

@@ -24,3 +24,8 @@ void ALifeEnemy::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+void ALifeEnemy::SetMyTurn(bool New_bIsMyTurn)
+{
+	this->bIsMyTurn = New_bIsMyTurn;
+}
+

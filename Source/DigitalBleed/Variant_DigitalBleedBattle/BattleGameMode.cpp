@@ -284,44 +284,27 @@ void ABattleGameMode::CalculatePartyOrder()
 
 void ABattleGameMode::CTScan()
 {
+	if (bIsPlayerSideTurn==false) return;
 	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
 	ALifeHuman* CurrentTurnLife = AccessLifeByPlayerCode(CurrentTurnTarget);
-	check(CurrentTurnLife);
 	this->MainCam->SeePlayerBackToEnemy(CurrentTurnLife->GetActorLocation(), Enemies[0]->GetActorLocation());
 }
 
 void ABattleGameMode::CameraSeeEnemyOnly(int32 EnemyIdx)
 {
-	check(Enemies[EnemyIdx]);
-	this->MainCam->SeePlayerBack(Enemies[EnemyIdx]->GetActorLocation());
+	if(IsValid(Enemies[EnemyIdx]))
+	{
+		this->MainCam->SeePlayerBack(Enemies[EnemyIdx]->GetActorLocation());
+	}
+	
 }
 
 void ABattleGameMode::CameraSeeTurnOwner()
 {
 	ALifeHuman* CurrentTurnLife = AccessLifeByPlayerCode(CurrentTurnTarget);
-	check(CurrentTurnLife);
-	this->MainCam->SeePlayerBack(CurrentTurnLife->GetActorLocation());
-}
-
-
-
-void ABattleGameMode::EndTurn()
-{
-	this->TurnCount++;
-	this->CurrentTurnTarget = PartyOrder[TurnCount % PartyOrder.Num()];
-	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
-	//GI->ShowToast(FText::FromString("DEBUG_ENDTURN"));
-	this->InitNewTurn();
-}
-
-void ABattleGameMode::InitNewTurn()
-{
-	UE_LOG(LogTemp, Warning, TEXT("BattleGameMode :: InitNewTurn of %s"), *CurrentTurnTarget);
-	ALife* CurrentTurnLife = AccessLifeByCode(CurrentTurnTarget);
 	if (IsValid(CurrentTurnLife))
 	{
 		this->MainCam->SeePlayerBack(CurrentTurnLife->GetActorLocation());
-		this->MainCam->StopRotation();
 	}
 }
 
@@ -350,4 +333,71 @@ ALife* ABattleGameMode::AccessLifeByCode(FString Code)
 		}
 	}
 	return AccessLifeByPlayerCode(Code);
+}
+
+// ==================================================
+// Turn Related Things
+// ==================================================
+
+void ABattleGameMode::EndTurn()
+{
+	// 현재 턴 종료
+	if (this->CurrentTurnTarget.StartsWith("Enemy_"))
+	{
+		ALifeEnemy* CurrentEnemy = Cast<ALifeEnemy>(AccessLifeByCode(CurrentTurnTarget));
+		if (IsValid(CurrentEnemy))
+		{
+			CurrentEnemy->SetMyTurn(false);
+		}
+	}
+
+	// 다음 턴 시작
+	this->TurnCount++;
+	this->CurrentTurnTarget = PartyOrder[TurnCount % PartyOrder.Num()];
+	if (this->CurrentTurnTarget.StartsWith("Enemy_"))
+	{
+		this->bIsPlayerSideTurn = false;
+		ALifeEnemy* CurrentEnemy = Cast<ALifeEnemy>(AccessLifeByCode(CurrentTurnTarget));
+		if (IsValid(CurrentEnemy))
+		{
+			CurrentEnemy->SetMyTurn(true);
+			CurrentEnemy->DispatcherStartTurn.Broadcast();
+		}
+	} else
+	{
+		this->bIsPlayerSideTurn = true;
+	}
+	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
+	//GI->ShowToast(FText::FromString("DEBUG_ENDTURN"));
+
+	this->DispatcherGameModeTurnEnd.Broadcast();
+	this->InitNewTurn();
+}
+
+void ABattleGameMode::InitNewTurn()
+{
+	UE_LOG(LogTemp, Warning, TEXT("BattleGameMode :: InitNewTurn of %s"), *CurrentTurnTarget);
+	ALife* CurrentTurnLife = AccessLifeByCode(CurrentTurnTarget);
+	if (IsValid(CurrentTurnLife))
+	{
+		this->MainCam->SeePlayerBack(CurrentTurnLife->GetActorLocation());
+		this->MainCam->StopRotation();
+	}
+	this->DispatcherGameModeTurnStart.Broadcast();
+}
+
+void ABattleGameMode::CurrentTurnDefend()
+{
+	ALife* CurrentTurnLife = AccessLifeByCode(CurrentTurnTarget);
+	if (IsValid(CurrentTurnLife))
+	{
+		this->MainCam->SeePlayerBack(CurrentTurnLife->GetActorLocation());
+		CurrentTurnLife->Defend();
+	}
+	
+	FTimerHandle TimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
+	{
+		this->EndTurn();
+	}, 2.0f, false);
 }

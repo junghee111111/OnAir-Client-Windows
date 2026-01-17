@@ -12,6 +12,10 @@
 /**
  * 
  */
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTurnEnd);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTurnStart);
+
 UCLASS()
 class DIGITALBLEED_API ABattleGameMode : public AGameMode
 {
@@ -39,7 +43,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Battle")
 	int32 MaxPlayersNum = 4;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly,EditAnywhere)
 	bool bIsPlayerSideTurn = true;
 
 	UPROPERTY(BlueprintReadOnly)
@@ -94,8 +98,15 @@ public:
 	void EndTurn();
 	
 	void InitNewTurn();
+	void CurrentTurnDefend();
 
 	UFUNCTION(BlueprintCallable)
 	ALifeHuman* AccessLifeByPlayerCode(FString PlayerCode);
 	ALife* AccessLifeByCode(FString Code);
+
+	UPROPERTY(BlueprintAssignable, Category = "Turn")
+	FOnTurnEnd DispatcherGameModeTurnEnd;
+
+	UPROPERTY(BlueprintAssignable, Category = "Turn")
+	FOnTurnStart DispatcherGameModeTurnStart;
 };

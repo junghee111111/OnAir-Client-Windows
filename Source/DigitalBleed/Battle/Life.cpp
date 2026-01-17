@@ -31,3 +31,15 @@ void ALife::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+void ALife::Defend()
+{
+	if (IsValid(this->MontageDefend))
+	{
+		USkeletalMeshComponent* MeshComp = GetMesh();
+		if (IsValid(MeshComp) && MeshComp->GetAnimInstance())
+		{
+			MeshComp->GetAnimInstance()->Montage_Play(MontageDefend, 1.0f);
+		}
+	}
+}
+
