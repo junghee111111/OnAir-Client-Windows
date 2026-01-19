@@ -37,4 +37,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Animation")
 	void Defend();
+
+	UFUNCTION(BlueprintCallable, Category = "Animation")
+	void ResetAnim();
 };

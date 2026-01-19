@@ -114,7 +114,7 @@ protected:
 	UPROPERTY(BlueprintReadWrite, Category = "Party")
 	TArray<FString> PartyOut;
 
-	UPROPERTY(BlueprintReadOnly, Category = "UserData")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "UserData")
 	TArray<FRowSkillRecord> SkillRecords;
 
 

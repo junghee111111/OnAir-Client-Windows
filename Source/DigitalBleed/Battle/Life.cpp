@@ -43,3 +43,13 @@ void ALife::Defend()
 	}
 }
 
+void ALife::ResetAnim()
+{
+	// montage stop all
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (IsValid(MeshComp) && MeshComp->GetAnimInstance())
+	{
+		MeshComp->GetAnimInstance()->Montage_Stop(0);
+	}
+}
+

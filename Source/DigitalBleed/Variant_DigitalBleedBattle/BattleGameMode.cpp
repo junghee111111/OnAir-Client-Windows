@@ -38,7 +38,7 @@ void ABattleGameMode::SpawnEnemies()
 			float Angle = AngleBetweenEnemies * i;
 			FVector SpawnLocation = FVector(distance * FMath::Cos(Angle), distance * FMath::Sin(Angle), 0);
 			FRotator SpawnRotation = FRotator(0, FMath::RadiansToDegrees(Angle)-90, 0);
-			ALifeEnemy* Enemy = GetWorld()->SpawnActor<ALifeEnemy>(this->LifeEnemies[0], SpawnLocation, SpawnRotation);
+			ALifeEnemy* Enemy = GetWorld()->SpawnActor<ALifeEnemy>(this->LifeEnemies[i], SpawnLocation, SpawnRotation);
 			Enemies.Add(Enemy);
 		}
 	}
@@ -117,7 +117,7 @@ void ABattleGameMode::SpawnPlayers()
 			PlayerStarts[i]->GetActorRotation(),
 			SpawnParams);
 
-		if (PC)
+		if (IsValid(PC))
 		{
 			AActor* StartSpot = this->GetPlayerStartByIndex(i);
 
@@ -126,9 +126,11 @@ void ABattleGameMode::SpawnPlayers()
 			this->RegisterPlayerController(PC);
 			FTransform SpawnTransform = StartSpot->GetActorTransform();
 			AActor* SpawnedCharacter = GetWorld()->SpawnActor(DefaultPawnClass, &SpawnTransform, SpawnParams);
+			
 			ALifeHuman* LifeHuman = Cast<ALifeHuman>(SpawnedCharacter);
 			if (IsValid(LifeHuman))
 			{
+				// PC->Possess(LifeHuman);
 				LifeHuman->PlayerCode = GI->GetPartyMembers()[i];
 				PartyMembers.Add(LifeHuman);
 			}
@@ -137,8 +139,6 @@ void ABattleGameMode::SpawnPlayers()
 			LogTemp, Warning,
 			TEXT("BattleGameMode :: SpawnPlayer at Pos : %d, Num : %d"),
 			i, PlayerControllers.Num());
-			
-			if (IsValid(SpawnedCharacter)) PC->Possess(Cast<APawn>(SpawnedCharacter));
 		}
 	}
 }
@@ -220,13 +220,14 @@ void ABattleGameMode::BeginPlay()
 	// 첫 번째 플레이어(나) 추가
 	if (IsValid(FirstPC))
 	{
-		FirstPC->SetInputMode(FInputModeUIOnly());
+		FirstPC->SetInputMode(FInputModeGameAndUI());
 		FirstPC->bShowMouseCursor = true;
 		ALifeHuman* MyLifeHuman = Cast<ALifeHuman>(FirstPC->GetPawn());
 		if (IsValid(MyLifeHuman))
 		{
 			MyLifeHuman->PlayerCode = GI->GetPartyMembers()[0]; // 첫 번째 PlayerCode 설정
 			PartyMembers.Add(MyLifeHuman);
+			// FirstPC->Possess(MyLifeHuman);
 		}
 		SpawnPlayers();
 	}
@@ -308,6 +309,57 @@ void ABattleGameMode::CameraSeeTurnOwner()
 	}
 }
 
+void ABattleGameMode::StartSelectEnemyMode()
+{
+	this->bEnemySelectMode = true;
+	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
+	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
+	if (IsValid(GI))
+	{
+		GI->ShowToast(FText::FromString("BATTLE_SELECT_TARGET"));
+		FirstPC->SetInputMode(FInputModeGameOnly());
+		FirstPC->bShowMouseCursor = false;
+		ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
+		ALifeEnemy* SelectedEnemyLife = Enemies[SelectedEnemy];
+		this->MainCam->SeePlayerBackToEnemy(CurrentLife->GetActorLocation(), SelectedEnemyLife->GetActorLocation());
+	}
+}
+
+void ABattleGameMode::SelectNextEnemy()
+{
+	SelectedEnemy++;
+	if (SelectedEnemy >= LifeEnemies.Num())
+	{
+		SelectedEnemy = 0;
+	}
+	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
+	ALifeEnemy* SelectedEnemyLife = Enemies[SelectedEnemy];
+	this->MainCam->SeePlayerBackToEnemy(CurrentLife->GetActorLocation(), SelectedEnemyLife->GetActorLocation());
+}
+
+void ABattleGameMode::SelectPrevEnemy()
+{
+	SelectedEnemy--;
+	if (SelectedEnemy <= 0)
+	{
+		SelectedEnemy = LifeEnemies.Num()-1;
+	}
+	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
+	ALifeEnemy* SelectedEnemyLife = Enemies[SelectedEnemy];
+	this->MainCam->SeePlayerBackToEnemy(CurrentLife->GetActorLocation(), SelectedEnemyLife->GetActorLocation());
+}
+
+void ABattleGameMode::EndSelectEnemyMode()
+{
+	this->bEnemySelectMode = false;
+	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
+	if (IsValid(FirstPC))
+	{
+		FirstPC->SetInputMode(FInputModeGameOnly());
+		FirstPC->bShowMouseCursor = false;
+	}
+}
+
 ALifeHuman* ABattleGameMode::AccessLifeByPlayerCode(FString PlayerCode)
 {
 	for (ALifeHuman* LifeHuman : PartyMembers)
@@ -349,6 +401,9 @@ void ABattleGameMode::EndTurn()
 		{
 			CurrentEnemy->SetMyTurn(false);
 		}
+	} else
+	{
+		ALife* CurrentPlayer = AccessLifeByCode(CurrentTurnTarget);
 	}
 
 	// 다음 턴 시작
@@ -366,9 +421,13 @@ void ABattleGameMode::EndTurn()
 	} else
 	{
 		this->bIsPlayerSideTurn = true;
+		ALife* CurrentPlayer = AccessLifeByCode(CurrentTurnTarget);
+		// 현재 컨트롤러를 현재 플레이어의 컨트롤러로 설정
+		APlayerController* PC = Cast<APlayerController>(CurrentPlayer->GetController());
+		// if (IsValid(PC)) PC->Possess(CurrentPlayer);
 	}
 	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
-	//GI->ShowToast(FText::FromString("DEBUG_ENDTURN"));
+	GI->ShowToast(FText::FromString("DEBUG_ENDTURN"));
 
 	this->DispatcherGameModeTurnEnd.Broadcast();
 	this->InitNewTurn();
@@ -382,6 +441,7 @@ void ABattleGameMode::InitNewTurn()
 	{
 		this->MainCam->SeePlayerBack(CurrentTurnLife->GetActorLocation());
 		this->MainCam->StopRotation();
+		CurrentTurnLife->ResetAnim();
 	}
 	this->DispatcherGameModeTurnStart.Broadcast();
 }
@@ -389,6 +449,13 @@ void ABattleGameMode::InitNewTurn()
 void ABattleGameMode::CurrentTurnDefend()
 {
 	ALife* CurrentTurnLife = AccessLifeByCode(CurrentTurnTarget);
+
+	if (bIsPlayerSideTurn==false)
+	{
+		UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
+		GI->ShowToast(FText::FromString("UI_ENEMY_COMMAND_DEFEND"));
+	}
+	
 	if (IsValid(CurrentTurnLife))
 	{
 		this->MainCam->SeePlayerBack(CurrentTurnLife->GetActorLocation());
@@ -399,5 +466,5 @@ void ABattleGameMode::CurrentTurnDefend()
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
 	{
 		this->EndTurn();
-	}, 2.0f, false);
+	}, 1.0f, false);
 }

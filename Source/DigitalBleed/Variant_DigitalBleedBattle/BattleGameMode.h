@@ -46,6 +46,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly,EditAnywhere)
 	bool bIsPlayerSideTurn = true;
 
+	UPROPERTY(BlueprintReadOnly,EditAnywhere)
+	bool bEnemySelectMode = false;
+
 	UPROPERTY(BlueprintReadOnly)
 	FString CurrentTurnTarget = "";
 
@@ -73,7 +76,10 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Enemy")
-	TArray<TSubclassOf<class ALifeEnemy>> LifeEnemies;
+	TArray<TSubclassOf<ALifeEnemy>> LifeEnemies;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|Enemy")
+	int32 SelectedEnemy = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battle|UI")
 	TSubclassOf<class UWholeBattleUI> WholeBattleUIClass;
@@ -93,11 +99,25 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void CameraSeeTurnOwner();
 
+	UFUNCTION(BlueprintCallable)
+	void StartSelectEnemyMode();
+
+	UFUNCTION(BlueprintCallable)
+	void SelectNextEnemy();
+
+	UFUNCTION(BlueprintCallable)
+	void SelectPrevEnemy();
+
+	UFUNCTION(BlueprintCallable)
+	void EndSelectEnemyMode();
+
 public:
 	UFUNCTION(BlueprintCallable)
 	void EndTurn();
 	
 	void InitNewTurn();
+
+	UFUNCTION(BlueprintCallable)
 	void CurrentTurnDefend();
 
 	UFUNCTION(BlueprintCallable)

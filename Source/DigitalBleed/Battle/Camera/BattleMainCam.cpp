@@ -106,13 +106,30 @@ void ABattleMainCam::Tick(float DeltaTime)
 
 		float NewTargetArmLength = FMath::FInterpTo(this->SpringArm->TargetArmLength, TargetArmLength, DeltaTime, 5.0f);
 		this->SpringArm->TargetArmLength = NewTargetArmLength;
+
+		bool bIsLocationDone = false;
+		bool bIsRotationDone = false;
 		
 		// 목표에 거의 도달하면 정확히 설정하고 중지
 		if (FVector::Dist(GetActorLocation(), TargetLocation) < 0.01f && FMath::Abs(TargetArmLength-NewTargetArmLength) < 1.0f)
 		{
 			SetActorLocation(TargetLocation);
-			SetActorRotation(TargetRotation);
 			this->SpringArm->TargetArmLength = TargetArmLength;
+
+			bIsLocationDone = true;
+		}
+
+		FRotator CurrentRotation = GetActorRotation();
+		float AngleDifference = FMath::Abs((TargetRotation - CurrentRotation).GetNormalized().Yaw);
+
+		if (AngleDifference <= 0.1f)
+		{
+			SetActorRotation(TargetRotation);
+			bIsRotationDone = true;
+		}
+
+		if (bIsLocationDone && bIsRotationDone)
+		{
 			bIsMovingToTarget = false;
 		}
 		
