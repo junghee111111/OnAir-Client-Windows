@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "./Component/LifeEquipComponent.h"
 #include "./Component/LifeStatComponent.h"
+#include "Data/StructSkill.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Character.h"
 #include "Life.generated.h"
@@ -25,10 +26,50 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Battle Animations")
 	UAnimMontage* MontageDefend;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Battle Animations")
+	UAnimMontage* MontagePhysAttack1;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Battle Animations")
+	UAnimMontage* MontagePhysAttack2;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Battle Animations")
+	UAnimMontage* MontagePhysAttack3;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Battle Animations")
+	UAnimMontage* MontageRun;
+
+	UPROPERTY()
+	UAnimInstance* AnimInstance = nullptr;
+
+	UPROPERTY()
+	FVector OriginalLocation;
+
+	UPROPERTY()
+	bool bIsMovingToTarget = false;
+
+	UPROPERTY()
+	bool bIsGoingOriginalPos = false;
+
+	UPROPERTY()
+	bool bReadyForExecuteSkill = false;
+
+	UPROPERTY()
+	FVector TargetLocation;
+
+	UPROPERTY()
+	FRowSkill CurrentSkill;
+
+	UPROPERTY()
+	FRowSkillRecord CurrentSkillRecord;
+	
+
 public:
+	void OnSkillMontageEnded(UAnimMontage* AnimMontage, bool bArg);
+	void ExecSkillMontages();
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	
+	void ExecSkill(ALife* TargetLife, FRowSkill Skill, FRowSkillRecord SkillRecord);
+
 	UPROPERTY(EditAnywhere)
 	ULifeEquipComponent* LifeEquipComponent;
 	

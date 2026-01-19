@@ -32,12 +32,14 @@ void ABattleGameMode::SpawnEnemies()
 	{
 		// Spawn in circle shape with same degrees in 360
 		float AngleBetweenEnemies = PI*2 / this->LifeEnemies.Num();
-		float distance = 300.0f;
+		float distance = 200.0f;
 		for (int i = 0; i < this->LifeEnemies.Num(); i++)
 		{
 			float Angle = AngleBetweenEnemies * i;
 			FVector SpawnLocation = FVector(distance * FMath::Cos(Angle), distance * FMath::Sin(Angle), 0);
-			FRotator SpawnRotation = FRotator(0, FMath::RadiansToDegrees(Angle)-90, 0);
+
+			FRotator LookRotation = (FVector(0,0,0) - SpawnLocation).Rotation();
+			FRotator SpawnRotation = FRotator(0, LookRotation.Yaw, 0);
 			ALifeEnemy* Enemy = GetWorld()->SpawnActor<ALifeEnemy>(this->LifeEnemies[i], SpawnLocation, SpawnRotation);
 			Enemies.Add(Enemy);
 		}
@@ -81,8 +83,7 @@ void ABattleGameMode::RestartPlayer(AController* NewPlayer)
 	{
 		// 스폰 위치 및 회전값
 		FVector SpawnLocation = StartSpot->GetActorLocation();
-		FRotator SpawnRotation = StartSpot->GetActorRotation();
-		PC->GetPawn()->SetActorLocationAndRotation(SpawnLocation, SpawnRotation);
+		PC->GetPawn()->SetActorLocation(SpawnLocation);
 	}
 }
 
@@ -208,7 +209,7 @@ void ABattleGameMode::BeginPlay()
 	Super::BeginPlay();
 	TArray<AActor*> PlayerStarts;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), PlayerStarts);
-	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
+	this->MyGameInstance = Cast<UDigitalBleedGameInstance>(GetGameInstance());
 	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
 	
 	if (PlayerControllers.Num() > 0)
@@ -220,12 +221,12 @@ void ABattleGameMode::BeginPlay()
 	// 첫 번째 플레이어(나) 추가
 	if (IsValid(FirstPC))
 	{
-		FirstPC->SetInputMode(FInputModeGameAndUI());
+		FirstPC->SetInputMode(FInputModeUIOnly());
 		FirstPC->bShowMouseCursor = true;
 		ALifeHuman* MyLifeHuman = Cast<ALifeHuman>(FirstPC->GetPawn());
 		if (IsValid(MyLifeHuman))
 		{
-			MyLifeHuman->PlayerCode = GI->GetPartyMembers()[0]; // 첫 번째 PlayerCode 설정
+			MyLifeHuman->PlayerCode = this->MyGameInstance->GetPartyMembers()[0]; // 첫 번째 PlayerCode 설정
 			PartyMembers.Add(MyLifeHuman);
 			// FirstPC->Possess(MyLifeHuman);
 		}
@@ -297,7 +298,6 @@ void ABattleGameMode::CameraSeeEnemyOnly(int32 EnemyIdx)
 	{
 		this->MainCam->SeePlayerBack(Enemies[EnemyIdx]->GetActorLocation());
 	}
-	
 }
 
 void ABattleGameMode::CameraSeeTurnOwner()
@@ -306,6 +306,33 @@ void ABattleGameMode::CameraSeeTurnOwner()
 	if (IsValid(CurrentTurnLife))
 	{
 		this->MainCam->SeePlayerBack(CurrentTurnLife->GetActorLocation());
+	}
+}
+
+void ABattleGameMode::CameraSee_SkillTarget_Angle1()
+{
+	ALifeHuman* CurrentTurnLife = AccessLifeByPlayerCode(CurrentTurnTarget);
+	if (IsValid(CurrentTurnLife))
+	{
+		this->MainCam->SeePlayerBackToEnemy_Angle1(CurrentTurnLife->GetActorLocation(), this->CurrentSkillTarget->GetActorLocation());
+	}
+}
+
+void ABattleGameMode::CameraSee_SkillTarget_Angle2()
+{
+	ALifeHuman* CurrentTurnLife = AccessLifeByPlayerCode(CurrentTurnTarget);
+	if (IsValid(CurrentTurnLife))
+	{
+		this->MainCam->SeePlayerBackToEnemy_Angle2(CurrentTurnLife->GetActorLocation(), this->CurrentSkillTarget->GetActorLocation());
+	}
+}
+
+void ABattleGameMode::CameraSee_SkillTarget_Angle3()
+{
+	ALifeHuman* CurrentTurnLife = AccessLifeByPlayerCode(CurrentTurnTarget);
+	if (IsValid(CurrentTurnLife))
+	{
+		this->MainCam->SeePlayerBackToEnemy_Angle3(CurrentTurnLife->GetActorLocation(), this->CurrentSkillTarget->GetActorLocation());
 	}
 }
 
@@ -335,29 +362,66 @@ void ABattleGameMode::SelectNextEnemy()
 	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
 	ALifeEnemy* SelectedEnemyLife = Enemies[SelectedEnemy];
 	this->MainCam->SeePlayerBackToEnemy(CurrentLife->GetActorLocation(), SelectedEnemyLife->GetActorLocation());
+	this->CurrentSkillTarget = SelectedEnemyLife;
 }
 
 void ABattleGameMode::SelectPrevEnemy()
 {
 	SelectedEnemy--;
-	if (SelectedEnemy <= 0)
+	if (SelectedEnemy < 0)
 	{
 		SelectedEnemy = LifeEnemies.Num()-1;
 	}
 	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
 	ALifeEnemy* SelectedEnemyLife = Enemies[SelectedEnemy];
 	this->MainCam->SeePlayerBackToEnemy(CurrentLife->GetActorLocation(), SelectedEnemyLife->GetActorLocation());
+	this->CurrentSkillTarget = SelectedEnemyLife;
 }
 
 void ABattleGameMode::EndSelectEnemyMode()
 {
 	this->bEnemySelectMode = false;
 	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
+	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
 	if (IsValid(FirstPC))
 	{
-		FirstPC->SetInputMode(FInputModeGameOnly());
-		FirstPC->bShowMouseCursor = false;
+		FirstPC->SetInputMode(FInputModeUIOnly());
+		FirstPC->bShowMouseCursor = true;
 	}
+	this->MainCam->SeePlayerBack(CurrentLife->GetActorLocation());
+}
+
+void ABattleGameMode::ExecuteSkill()
+{
+	this->bIsSkillPlaying = true;
+
+	if (this->CurrentSkill.Name.IsEmpty())
+	{
+		this->EndTurn();
+		return;
+	}
+	
+	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
+	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
+	
+	if (IsValid(FirstPC))
+	{
+		FirstPC->SetInputMode(FInputModeUIOnly());
+		FirstPC->bShowMouseCursor = true;
+		
+	}
+	this->MainCam->GoTowardsTarget(CurrentLife->GetActorLocation(), this->CurrentSkillTarget->GetActorLocation());
+	CurrentLife->ExecSkill(this->CurrentSkillTarget, this->CurrentSkill, this->CurrentSkillRecord);
+
+	//스킬네임 토스트로 표출
+	FString SkillNameKey = FString::Printf(TEXT("%s_TITLE"), *this->CurrentSkillRecord.SkillId.ToString());
+	this->MyGameInstance->ShowToastSkillName(FText::FromString(SkillNameKey));
+}
+
+void ABattleGameMode::EndSkill()
+{
+	this->bIsSkillPlaying = false;
+	this->EndTurn();
 }
 
 ALifeHuman* ABattleGameMode::AccessLifeByPlayerCode(FString PlayerCode)
@@ -385,6 +449,16 @@ ALife* ABattleGameMode::AccessLifeByCode(FString Code)
 		}
 	}
 	return AccessLifeByPlayerCode(Code);
+}
+
+void ABattleGameMode::SetCurrentSkill(FRowSkill Skill)
+{
+	this->CurrentSkill = Skill;
+}
+
+void ABattleGameMode::SetCurrentSkillRecord(FRowSkillRecord Skill)
+{
+	this->CurrentSkillRecord = Skill;
 }
 
 // ==================================================

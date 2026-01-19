@@ -7,6 +7,7 @@
 #include "Battle/LifeHuman.h"
 #include "Battle/Camera/BattleMainCam.h"
 #include "GameFramework/GameMode.h"
+#include "System/DigitalBleedGameInstance.h"
 #include "BattleGameMode.generated.h"
 
 /**
@@ -43,14 +44,20 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Battle")
 	int32 MaxPlayersNum = 4;
 
-	UPROPERTY(BlueprintReadOnly,EditAnywhere)
+	UPROPERTY(BlueprintReadOnly)
 	bool bIsPlayerSideTurn = true;
 
-	UPROPERTY(BlueprintReadOnly,EditAnywhere)
+	UPROPERTY(BlueprintReadOnly)
 	bool bEnemySelectMode = false;
 
 	UPROPERTY(BlueprintReadOnly)
+	bool bIsSkillPlaying = false;
+
+	UPROPERTY(BlueprintReadOnly)
 	FString CurrentTurnTarget = "";
+
+	UPROPERTY(BlueprintReadOnly)
+	ALife* CurrentSkillTarget = nullptr;
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 TurnCount = 0;
@@ -66,6 +73,9 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly)
 	ABattleMainCam* MainCam = nullptr;
+
+	UPROPERTY()
+	UDigitalBleedGameInstance* MyGameInstance = nullptr;
 	
 
 	UFUNCTION()
@@ -100,6 +110,15 @@ protected:
 	void CameraSeeTurnOwner();
 
 	UFUNCTION(BlueprintCallable)
+	void CameraSee_SkillTarget_Angle1();
+
+	UFUNCTION(BlueprintCallable)
+	void CameraSee_SkillTarget_Angle2();
+
+	UFUNCTION(BlueprintCallable)
+	void CameraSee_SkillTarget_Angle3();
+
+	UFUNCTION(BlueprintCallable)
 	void StartSelectEnemyMode();
 
 	UFUNCTION(BlueprintCallable)
@@ -110,6 +129,18 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void EndSelectEnemyMode();
+
+	UFUNCTION(BlueprintCallable)
+	void ExecuteSkill();
+
+	UFUNCTION(BlueprintCallable)
+	void EndSkill();
+
+	UPROPERTY(BlueprintReadWrite)
+	FRowSkill CurrentSkill;
+
+	UPROPERTY(BlueprintReadWrite)
+	FRowSkillRecord CurrentSkillRecord;
 
 public:
 	UFUNCTION(BlueprintCallable)
@@ -129,4 +160,11 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Turn")
 	FOnTurnStart DispatcherGameModeTurnStart;
+
+	UFUNCTION(BlueprintCallable)
+	void SetCurrentSkill(FRowSkill Skill);
+
+	UFUNCTION(BlueprintCallable)
+	void SetCurrentSkillRecord(FRowSkillRecord Skill);
+	
 };

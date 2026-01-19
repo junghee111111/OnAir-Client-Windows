@@ -108,6 +108,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
 	UStringTable* ST_UI = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
+	UStringTable* ST_Skill = nullptr;
+
 	UPROPERTY(BlueprintReadWrite, Category = "Party")
 	TArray<FString> PartyIn;
 
@@ -299,6 +302,9 @@ public:
 	FString GetUIString(FText RowKey);
 
 	UFUNCTION(BlueprintCallable)
+	FString GetSkillString(FText RowKey);
+
+	UFUNCTION(BlueprintCallable)
 	void AddPartyMember(const FString& MemberID);
 
 	UFUNCTION(BlueprintCallable)
@@ -309,4 +315,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ShowToast(FText RowKey);
+
+	UFUNCTION(BlueprintCallable)
+	void ShowToastSkillName(FText RowKey);
 };

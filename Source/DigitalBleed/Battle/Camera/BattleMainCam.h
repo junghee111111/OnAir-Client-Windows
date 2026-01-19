@@ -30,6 +30,9 @@ public:
 	void SeeEnemyBackToPlayer();
 
 	UFUNCTION(BlueprintCallable)
+	void GoTowardsTarget(FVector PlayerPos, FVector EnemyPos);
+
+	UFUNCTION(BlueprintCallable)
 	void SeePlayerBackToEnemy(FVector PlayerPos, FVector EnemyPos);
 
 	UFUNCTION(BlueprintCallable)
@@ -40,6 +43,15 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetPitch(float Pitch);
+
+	UFUNCTION(BlueprintCallable)
+	void SeePlayerBackToEnemy_Angle1(const FVector& SkillExecutionerPos, const FVector& TargetPos);
+
+	UFUNCTION(BlueprintCallable)
+	void SeePlayerBackToEnemy_Angle2(const FVector& SkillExecutionerPos, const FVector& TargetPos);
+
+	UFUNCTION(BlueprintCallable)
+	void SeePlayerBackToEnemy_Angle3(const FVector& SkillExecutionerPos, const FVector& TargetPos);
 
 protected:
 	// Called when the game starts or when spawned
@@ -65,6 +77,9 @@ protected:
 
 	UPROPERTY()
 	bool bIsMovingToTarget = false;
+
+	UPROPERTY()
+	bool bIsForce = false;
 
 public:
 	// Called every frame

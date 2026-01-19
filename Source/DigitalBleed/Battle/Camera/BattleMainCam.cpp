@@ -42,16 +42,25 @@ void ABattleMainCam::SeeEnemyBackToPlayer()
 {
 }
 
+void ABattleMainCam::GoTowardsTarget(FVector PlayerPos, FVector EnemyPos)
+{
+	this->TargetArmLength = 150.0f;
+	TargetLocation = PlayerPos + FVector(0,0,70);
+
+	FRotator Rot = UKismetMathLibrary::FindLookAtRotation(PlayerPos, EnemyPos);
+	TargetRotation = Rot;
+	bIsMovingToTarget = true;
+}
+
 void ABattleMainCam::SeePlayerBackToEnemy(FVector PlayerPos, FVector EnemyPos)
 {
-	this->TargetArmLength = 300.0f;
+	this->TargetArmLength = 150.0f;
 	TargetLocation = PlayerPos + FVector(0,0,30);
 
 	FRotator Rot = UKismetMathLibrary::FindLookAtRotation(PlayerPos, EnemyPos-FVector(0,0,50));
-	Rot.Yaw += 30.0f; // 시계방향으로 15도정도 뺀다.
+	Rot.Yaw += 15.0f; // 시계방향으로 15도정도 뺀다.
 	
 	TargetRotation = Rot;
-
 	bIsMovingToTarget = true;
 }
 
@@ -60,6 +69,49 @@ void ABattleMainCam::StartRotation()
 	this->SpringArm->TargetArmLength = 1000.0f;
 	this->bIsMovingToTarget = false;
 	this->IsRotating = true;
+}
+
+void ABattleMainCam::SeePlayerBackToEnemy_Angle1(const FVector& SkillExecutionerPos, const FVector& TargetPos)
+{
+	this->bIsForce = true;
+	this->TargetArmLength = 250.0f;
+	TargetLocation = SkillExecutionerPos - FVector(0,0,30);
+
+	FRotator Rot = UKismetMathLibrary::FindLookAtRotation(SkillExecutionerPos-FVector(0,0,10), TargetPos+FVector(0,0,10));
+	Rot.Yaw += 32.0f; // 시계방향으로 15도정도 뺀다.
+	
+	TargetRotation = Rot;
+	bIsMovingToTarget = true;
+}
+
+void ABattleMainCam::SeePlayerBackToEnemy_Angle2(const FVector& SkillExecutionerPos, const FVector& TargetPos)
+{
+	this->bIsForce = true;
+	this->TargetArmLength = 200.0f;
+	TargetLocation = SkillExecutionerPos + FVector(0,0,30);
+
+	FRotator Rot = UKismetMathLibrary::FindLookAtRotation(SkillExecutionerPos, TargetPos-FVector(0,0,200));
+	Rot.Yaw -= 5.0f; // 시계방향으로 15도정도 뺀다.
+	
+	TargetRotation = Rot;
+	bIsMovingToTarget = true;
+	this->bIsForce = false;
+	// FRotator Rot2 = UKismetMathLibrary::FindLookAtRotation(SkillExecutionerPos, TargetPos+FVector(0,0,200));
+	// Rot2.Yaw += 10.0f;
+	// TargetRotation = Rot2;
+}
+
+void ABattleMainCam::SeePlayerBackToEnemy_Angle3(const FVector& SkillExecutionerPos, const FVector& TargetPos)
+{
+	this->bIsForce = true;
+	this->TargetArmLength = 250.0f;
+	TargetLocation = SkillExecutionerPos + FVector(0,0,30);
+
+	FRotator Rot = UKismetMathLibrary::FindLookAtRotation(SkillExecutionerPos, TargetPos-FVector(0,0,50));
+	Rot.Yaw -= 32.0f; // 시계방향으로 15도정도 뺀다.
+	
+	TargetRotation = Rot;
+	bIsMovingToTarget = true;
 }
 
 void ABattleMainCam::StopRotation()
@@ -111,7 +163,7 @@ void ABattleMainCam::Tick(float DeltaTime)
 		bool bIsRotationDone = false;
 		
 		// 목표에 거의 도달하면 정확히 설정하고 중지
-		if (FVector::Dist(GetActorLocation(), TargetLocation) < 0.01f && FMath::Abs(TargetArmLength-NewTargetArmLength) < 1.0f)
+		if ((FVector::Dist(GetActorLocation(), TargetLocation) < 0.01f && FMath::Abs(TargetArmLength-NewTargetArmLength) < 1.0f) || bIsForce)
 		{
 			SetActorLocation(TargetLocation);
 			this->SpringArm->TargetArmLength = TargetArmLength;
@@ -122,13 +174,18 @@ void ABattleMainCam::Tick(float DeltaTime)
 		FRotator CurrentRotation = GetActorRotation();
 		float AngleDifference = FMath::Abs((TargetRotation - CurrentRotation).GetNormalized().Yaw);
 
-		if (AngleDifference <= 0.1f)
+		if (AngleDifference <= 0.1f || bIsForce)
 		{
 			SetActorRotation(TargetRotation);
 			bIsRotationDone = true;
 		}
 
-		if (bIsLocationDone && bIsRotationDone)
+		if (bIsForce)
+		{
+			bIsForce = false;
+		}
+
+		if (bIsLocationDone && bIsRotationDone || bIsForce)
 		{
 			bIsMovingToTarget = false;
 		}
