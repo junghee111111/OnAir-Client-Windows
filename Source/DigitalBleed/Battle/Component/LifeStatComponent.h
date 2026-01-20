@@ -7,12 +7,13 @@
 #include "LifeStatComponent.generated.h"
 
 
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(meta=(BlueprintSpawnableComponent))
 class DIGITALBLEED_API ULifeStatComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 protected:
+	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	int32 Str = 10; //공격
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
@@ -20,7 +21,7 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	int32 Int = 10; //명중
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	int32 Spd = 7; //속력
+	int32 Spd = 10; //속력
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	int32 Luk = 10; //크리
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
@@ -71,6 +72,4 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
-
-public:
 };

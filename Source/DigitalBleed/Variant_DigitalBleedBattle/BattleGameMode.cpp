@@ -50,9 +50,6 @@ void ABattleGameMode::SpawnEnemies()
 void ABattleGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
-	
-	RegisterPlayerController(NewPlayer);
-	
 }
 
 AActor* ABattleGameMode::GetPlayerStartByIndex(int32 PlayerIndex) const
@@ -90,9 +87,6 @@ void ABattleGameMode::RestartPlayer(AController* NewPlayer)
 void ABattleGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
 {
 	Super::InitGame(MapName, Options, ErrorMessage);
-	PlayerControllers.Empty();
-	CurrentPlayerIndex = 0;
-	this->SpawnEnemies();
 }
 
 void ABattleGameMode::Tick(float DeltaSeconds)
@@ -117,6 +111,8 @@ void ABattleGameMode::SpawnPlayers()
 	TArray<AActor*> PlayerStarts;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), PlayerStarts);
 	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
+
+	
 	
 	for (int32 i = 1; i < GI->GetPartyLength(); ++i) // 나를 제외하기 위해 i를 1부터 시작시킴
 	{
@@ -206,7 +202,7 @@ void ABattleGameMode::InitializeUI()
 {
 	if (IsValid(this->WholeBattleUIClass))
 	{
-		this->WholeBattleUI_Instance = CreateWidget<UWholeBattleUI>(PlayerControllers[0], this->WholeBattleUIClass);
+		this->WholeBattleUI_Instance = CreateWidget<UWholeBattleUI>(GetWorld()->GetFirstPlayerController(), this->WholeBattleUIClass);
 		
 		if (IsValid(this->WholeBattleUI_Instance))
 		{
@@ -218,15 +214,26 @@ void ABattleGameMode::InitializeUI()
 void ABattleGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+
+	PlayerControllers.Empty();
+	CurrentPlayerIndex = 0;
+	this->SpawnEnemies();
+	
 	TArray<AActor*> PlayerStarts;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), PlayerStarts);
 	this->MyGameInstance = Cast<UDigitalBleedGameInstance>(GetGameInstance());
 	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
-	
-	if (PlayerControllers.Num() > 0)
+
+	if (!IsValid(this->MyGameInstance))
 	{
-		this->InitializeMainCamera();
-		this->InitializeUI();
+		UE_LOG(LogTemp, Error, TEXT("BattleGameMode :: GameInstance Initialize Failed!"));
+		return;
+	}
+
+	if (this->MyGameInstance->GetPartyLength() < 1)
+	{
+		UE_LOG(LogTemp, Error, TEXT("BattleGameMode :: There's no party member!"));
+		return;
 	}
 	
 	// 첫 번째 플레이어(나) 추가
@@ -239,17 +246,30 @@ void ABattleGameMode::BeginPlay()
 		{
 			MyLifeHuman->PlayerCode = this->MyGameInstance->GetPartyMembers()[0]; // 첫 번째 PlayerCode 설정
 			PartyMembers.Add(MyLifeHuman);
+			MyLifeHuman->SetActorLocationAndRotation(PlayerStarts[0]->GetActorLocation(),PlayerStarts[0]->GetActorRotation());
 			// FirstPC->Possess(MyLifeHuman);
 		}
+		RegisterPlayerController(FirstPC);
 		SpawnPlayers();
 	}
-	CalculatePartyOrder();
 
-	CurrentTurnTarget = PartyOrder[0];
+	if (PlayerControllers.Num() > 0)
+	{
+		this->InitializeMainCamera();
+	}
+	
+
+	FTimerHandle TimerHandleCalculateOrder;
+	GetWorld()->GetTimerManager().SetTimer(TimerHandleCalculateOrder, [this]()
+	{
+		CalculatePartyOrder();
+		CurrentTurnTarget = PartyOrder[0];
+	}, 0.5f, false);
 	
 	FTimerHandle TimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
 	{
+		this->InitializeUI();
 		this->InitNewTurn();
 	}, 3.0f, false);
 }
@@ -258,33 +278,60 @@ void ABattleGameMode::CalculatePartyOrder()
 {
 	// order party member as Spd desc order
 	PartyOrder.Empty();
-	TArray<ALifeHuman*> SortedMembers = PartyMembers;
-	TArray<ALifeEnemy*> SortedEnemies = Enemies;
+	
+	// 유효하지 않은 요소 필터링
+	TArray<ALifeHuman*> SortedMembers;
+	for (ALifeHuman* Member : PartyMembers)
+	{
+		if (IsValid(Member) && IsValid(Member->LifeStatComponent))
+		{
+			SortedMembers.Add(Member);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Invalid PartyMember or LifeStatComponent found!"));
+		}
+	}
+	
+	TArray<ALifeEnemy*> SortedEnemies;
+	for (ALifeEnemy* Enemy : Enemies)
+	{
+		if (IsValid(Enemy) && IsValid(Enemy->LifeStatComponent))
+		{
+			SortedEnemies.Add(Enemy);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Invalid Enemy or LifeStatComponent found!"));
+		}
+	}
+	
 	TArray<ALife*> SortedAll = {};
 
+	UE_LOG(LogTemp, Log, TEXT("Sort Members"));
 	SortedMembers.Sort([](const ALifeHuman& A, const ALifeHuman& B)
 	{
+		// 이 시점에서는 이미 필터링되어 안전함
 		return A.LifeStatComponent->GetSpd() > B.LifeStatComponent->GetSpd();
 	});
 
+	UE_LOG(LogTemp, Log, TEXT("Sort Enemy"));
 	SortedEnemies.Sort([](const ALifeEnemy& A, const ALifeEnemy& B)
 	{
+		//UE_LOG(LogTemp, Log, TEXT("%s : %s"), *A.GetName(), *B.GetName());
 		return A.LifeStatComponent->GetSpd() > B.LifeStatComponent->GetSpd();
 	});
 
 	SortedAll.Append(SortedMembers);
 	SortedAll.Append(SortedEnemies);
 
+	UE_LOG(LogTemp, Log, TEXT("Sort All"));
 	SortedAll.Sort([](const ALife& A, const ALife& B)
 	{
 		return A.LifeStatComponent->GetSpd() > B.LifeStatComponent->GetSpd();
 	});
 
 	UE_LOG(LogTemp, Warning, TEXT("SortedAll.Num() : %d"), SortedAll.Num());
-	for (ALife* Life : SortedAll)
-	{
-		UE_LOG(LogTemp, Log, TEXT("%s : %d"), *Life->GetName(), Life->LifeStatComponent->GetSpd())
-	}
 
 	int32 MobIdx = 0;
 	for (int i = 0; i < SortedAll.Num(); i++)
@@ -298,6 +345,11 @@ void ABattleGameMode::CalculatePartyOrder()
 			PartyOrder.Add(FString::Printf(TEXT("Enemy_%d"), MobIdx));
 			MobIdx++;
 		}
+	}
+
+	for (int i = 0; i < PartyOrder.Num(); i++)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PartyOrder[%d] : %s"), i, *PartyOrder[i]);
 	}
 }
 
@@ -430,6 +482,7 @@ void ABattleGameMode::ExecuteSkill()
 	
 	if (IsValid(FirstPC))
 	{
+		
 		FirstPC->SetInputMode(FInputModeUIOnly());
 		FirstPC->bShowMouseCursor = true;
 		
@@ -518,6 +571,11 @@ void ABattleGameMode::ApplyDamage()
 		int32 Defense = this->CurrentSkillTarget->LifeStatComponent->GetDef() * 1.5f;
 		int32 FinalDamage = FMath::Max(1, BaseDamage - Defense);
 
+		if (this->CurrentSkillTarget->GetIsDefend())
+		{
+			FinalDamage = FMath::Max(1, FMath::Floor(FinalDamage / 2));
+		}
+
 		// Unreal Engine 기본 데미지 시스템 사용
 		UGameplayStatics::ApplyDamage(
 			this->CurrentSkillTarget,           // DamagedActor
@@ -528,19 +586,12 @@ void ABattleGameMode::ApplyDamage()
 		);
 		
 		// 로그 출력
-		UE_LOG(LogTemp, Warning, TEXT("ApplyDamage: %s -> %s, Damage: %.0f (Base: %.0f, Def: %d)"),
+		UE_LOG(LogTemp, Warning, TEXT("ApplyDamage: %s -> %s, Damage: %d (Base: %d, Def: %d)"),
 			*CurrentTurnLife->GetName(),
 			*this->CurrentSkillTarget->GetName(),
 			FinalDamage,
 			BaseDamage,
 			Defense);
-		
-		// 데미지 UI 표시
-		if (IsValid(this->MyGameInstance))
-		{
-			FString DamageText = FString::Printf(TEXT("-%d"), FinalDamage);
-			this->MyGameInstance->ShowToast(FText::FromString(DamageText));
-		}
 	}
 }
 
@@ -561,6 +612,8 @@ void ABattleGameMode::InitNewTurn()
 {
 	UE_LOG(LogTemp, Warning, TEXT("BattleGameMode :: InitNewTurn of %s"), *CurrentTurnTarget);
 
+	if (this->CurrentTurnTarget.IsEmpty()) return;
+
 	// 다음 턴 시작
 	if (this->CurrentTurnTarget.StartsWith("Enemy_"))
 	{
@@ -574,9 +627,7 @@ void ABattleGameMode::InitNewTurn()
 	} else
 	{
 		this->bIsPlayerSideTurn = true;
-		ALife* CurrentPlayer = AccessLifeByCode(CurrentTurnTarget);
-		// 현재 컨트롤러를 현재 플레이어의 컨트롤러로 설정
-		APlayerController* PC = Cast<APlayerController>(CurrentPlayer->GetController());
+		// ALife* CurrentPlayer = AccessLifeByCode(CurrentTurnTarget);
 	}
 	
 	this->AdjustCam();

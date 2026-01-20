@@ -17,9 +17,6 @@ ALifeHuman::ALifeHuman()
 void ALifeHuman::BeginPlay()
 {
 	Super::BeginPlay();
-
-	FRotator InitLookAt = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), FVector(0,0,0));
-	this->SetActorRotation(InitLookAt);
 }
 
 // Called every frame

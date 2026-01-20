@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "./Component/LifeEquipComponent.h"
 #include "./Component/LifeStatComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Data/StructSkill.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Character.h"
@@ -23,6 +24,14 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	// HP Bar Widget Component
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+	UWidgetComponent* HpBarWidgetComponent = nullptr;
+
+	// HP Bar Widget Class (블루프린트에서 할당)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<class UUserWidget> HpBarWidgetClass;
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Battle Animations")
 	UAnimMontage* MontageDefend;
 
@@ -37,6 +46,12 @@ protected:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Battle Animations")
 	UAnimMontage* MontageRun;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Battle Animations")
+	UAnimMontage* MontageHit;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Battle Animations")
+	UAnimMontage* MontageDefendHit;
 
 	UPROPERTY()
 	UAnimInstance* AnimInstance = nullptr;
@@ -53,6 +68,9 @@ protected:
 	UPROPERTY()
 	bool bReadyForExecuteSkill = false;
 
+	UPROPERTY(BlueprintReadWrite)
+	bool bIsDefend = false;
+	
 	UPROPERTY()
 	FVector TargetLocation;
 
@@ -73,10 +91,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	void ExecSkill(ALife* TargetLife, FRowSkill Skill, FRowSkillRecord SkillRecord);
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	ULifeEquipComponent* LifeEquipComponent;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	ULifeStatComponent* LifeStatComponent;
 
 	UFUNCTION(BlueprintCallable, Category = "Animation")
@@ -84,4 +102,13 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Animation")
 	void ResetAnim();
+
+	UFUNCTION(BlueprintCallable)
+	void ShowHpBar();
+
+	UFUNCTION(BlueprintCallable)
+	void HideHpBar();
+
+	UFUNCTION(BlueprintCallable)
+	bool GetIsDefend() const { return bIsDefend; }
 };

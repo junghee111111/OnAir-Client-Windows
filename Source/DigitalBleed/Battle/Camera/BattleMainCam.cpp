@@ -27,12 +27,12 @@ ABattleMainCam::ABattleMainCam()
 	
 }
 
-void ABattleMainCam::SeePlayerBack(FVector Pos)
+void ABattleMainCam::SeePlayerBack(const FVector PlayerPos)
 {
 	this->TargetArmLength = 180.0f;
-	TargetLocation = Pos + FVector(0,0,30);
+	TargetLocation = PlayerPos;
 
-	FRotator Rot = UKismetMathLibrary::FindLookAtRotation(Pos, FVector(0,0,-100));
+	FRotator Rot = UKismetMathLibrary::FindLookAtRotation(PlayerPos, FVector(0,0,-100));
 	TargetRotation = Rot;
 
 	bIsMovingToTarget = true;

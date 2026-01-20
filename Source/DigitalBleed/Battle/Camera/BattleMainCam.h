@@ -24,7 +24,7 @@ public:
 	ABattleMainCam();
 
 	UFUNCTION(BlueprintCallable)
-	void SeePlayerBack(FVector Pos);
+	void SeePlayerBack(const FVector PlayerPos);
 
 	UFUNCTION(BlueprintCallable)
 	void SeeEnemyBackToPlayer();

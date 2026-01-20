@@ -17,6 +17,15 @@ ALife::ALife()
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 	this->LifeEquipComponent = CreateDefaultSubobject<ULifeEquipComponent>("Life Equip Component");
 	this->LifeStatComponent = CreateDefaultSubobject<ULifeStatComponent>("Life Stat Component");
+	// HP Bar Widget Component 생성
+	HpBarWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HpBarWidget"));
+	HpBarWidgetComponent->SetupAttachment(RootComponent);
+	
+	// Widget Component 설정
+	HpBarWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen); // Screen space로 설정 (항상 카메라를 향함)
+	HpBarWidgetComponent->SetDrawSize(FVector2D(200.0f, 50.0f)); // 위젯 크기
+	HpBarWidgetComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 120.0f)); // 캐릭터 머리 위
+	HpBarWidgetComponent->SetVisibility(true);
 }
 
 // Called when the game starts or when spawned
@@ -27,7 +36,11 @@ void ALife::BeginPlay()
 	if (IsValid(MeshComp) && MeshComp->GetAnimInstance())
 	{
 		this->AnimInstance = MeshComp->GetAnimInstance();
+	} else
+	{
+		UE_LOG(LogTemp, Error, TEXT("MeshComponent or AnimInstance is not valid!"));
 	}
+	
 	ALifeHuman* CanIHuman = Cast<ALifeHuman>(this);
 	if (IsValid(CanIHuman))
 	{
@@ -164,7 +177,10 @@ void ALife::ExecSkill(ALife* TargetLife, FRowSkill Skill, FRowSkillRecord SkillR
 	FRotator LookAtRotation = (TargetLife->GetActorLocation() - GetActorLocation()).Rotation();
 	SetActorRotation(FRotator(0, LookAtRotation.Yaw, 0));
 
-	this->AnimInstance->Montage_Play(this->MontageRun,1.0f);
+	if (IsValid(this->MontageRun) && IsValid(this->AnimInstance))
+	{
+		this->AnimInstance->Montage_Play(this->MontageRun,1.0f);
+	}
 }
 
 void ALife::Defend()
@@ -174,6 +190,7 @@ void ALife::Defend()
 		USkeletalMeshComponent* MeshComp = GetMesh();
 		if (IsValid(MeshComp) && MeshComp->GetAnimInstance())
 		{
+			bIsDefend = true;
 			MeshComp->GetAnimInstance()->Montage_Play(MontageDefend, 1.0f);
 		}
 	}
@@ -186,6 +203,22 @@ void ALife::ResetAnim()
 	if (IsValid(MeshComp) && MeshComp->GetAnimInstance())
 	{
 		MeshComp->GetAnimInstance()->Montage_Stop(0);
+		bIsDefend = false;
 	}
 }
 
+void ALife::ShowHpBar()
+{
+	if (HpBarWidgetComponent)
+	{
+		HpBarWidgetComponent->SetVisibility(true);
+	}
+}
+
+void ALife::HideHpBar()
+{
+	if (HpBarWidgetComponent)
+	{
+		HpBarWidgetComponent->SetVisibility(false);
+	}
+}
