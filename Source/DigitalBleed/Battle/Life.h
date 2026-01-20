@@ -61,6 +61,9 @@ protected:
 
 	UPROPERTY()
 	FRowSkillRecord CurrentSkillRecord;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Skills")
+	TArray<FRowSkillRecord> SkillRecords;
 	
 
 public:

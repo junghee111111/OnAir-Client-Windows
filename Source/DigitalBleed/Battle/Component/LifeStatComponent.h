@@ -20,7 +20,7 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	int32 Int = 10; //명중
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	int32 Spd = 10; //속력
+	int32 Spd = 7; //속력
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	int32 Luk = 10; //크리
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
@@ -33,7 +33,7 @@ protected:
 
 	float Hemoglobin = 10.0f;
 	float Sodium = 140.0f;
-	float Potasium = 4.5f;
+	float Potassium = 4.5f;
 
 	// -1 : Weak, 0 : Normal, 1 : Immune, 2 : Nothing, 3 : Reflect, 4 : Absorb
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
@@ -56,12 +56,21 @@ public:
 	UFUNCTION(BlueprintCallable)
 	int32 GetSpd() const { return this->Spd;}
 
+	UFUNCTION(BlueprintCallable)
+	int32 GetHp() const { return this->Hp; }
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetStr() const { return this->Str; }
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetCon() const { return this->Con; }
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetDef() const { return this->Def; }
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
 public:
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
 };

@@ -33,6 +33,8 @@ public:
 	
 
 protected:
+	void AdjustCam();
+	
 	UPROPERTY()
 	TArray<APlayerController*> PlayerControllers;
 
@@ -166,5 +168,11 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetCurrentSkillRecord(FRowSkillRecord Skill);
+
+	UFUNCTION(BlueprintCallable)
+	void SelectPlayerLowestHp();
+
+	UFUNCTION(BlueprintCallable)
+	void ApplyDamage();
 	
 };

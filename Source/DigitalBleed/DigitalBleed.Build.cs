@@ -17,6 +17,8 @@ public class DigitalBleed : ModuleRules
 			"AIModule",
 			"StateTreeModule",
 			"GameplayStateTreeModule",
+			"Niagara",
+			"NiagaraCore",
 			"UMG",
 			"Slate",
 			"SlateCore",

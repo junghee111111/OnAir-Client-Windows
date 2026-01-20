@@ -21,8 +21,11 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, Category="DGHS|Battle")
 	bool bIsMyTurn;
+
+	UPROPERTY(BlueprintReadWrite, Category="DGHS|Battle")
+	FName EnemyId;
 
 public:
 	// Called every frame

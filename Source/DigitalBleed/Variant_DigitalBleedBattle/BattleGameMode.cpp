@@ -38,7 +38,7 @@ void ABattleGameMode::SpawnEnemies()
 			float Angle = AngleBetweenEnemies * i;
 			FVector SpawnLocation = FVector(distance * FMath::Cos(Angle), distance * FMath::Sin(Angle), 0);
 
-			FRotator LookRotation = (FVector(0,0,0) - SpawnLocation).Rotation();
+			FRotator LookRotation = (SpawnLocation-FVector(0,0,0)).Rotation();
 			FRotator SpawnRotation = FRotator(0, LookRotation.Yaw, 0);
 			ALifeEnemy* Enemy = GetWorld()->SpawnActor<ALifeEnemy>(this->LifeEnemies[i], SpawnLocation, SpawnRotation);
 			Enemies.Add(Enemy);
@@ -99,6 +99,17 @@ void ABattleGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	
+}
+
+void ABattleGameMode::AdjustCam()
+{
+	ALife* CurrentTurnLife = AccessLifeByCode(CurrentTurnTarget);
+	if (IsValid(CurrentTurnLife))
+	{
+		this->MainCam->SeePlayerBack(CurrentTurnLife->GetActorLocation());
+		this->MainCam->StopRotation();
+		CurrentTurnLife->ResetAnim();
+	}
 }
 
 void ABattleGameMode::SpawnPlayers()
@@ -240,7 +251,7 @@ void ABattleGameMode::BeginPlay()
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
 	{
 		this->InitNewTurn();
-	}, 4.0f, false);
+	}, 3.0f, false);
 }
 
 void ABattleGameMode::CalculatePartyOrder()
@@ -268,6 +279,12 @@ void ABattleGameMode::CalculatePartyOrder()
 	{
 		return A.LifeStatComponent->GetSpd() > B.LifeStatComponent->GetSpd();
 	});
+
+	UE_LOG(LogTemp, Warning, TEXT("SortedAll.Num() : %d"), SortedAll.Num());
+	for (ALife* Life : SortedAll)
+	{
+		UE_LOG(LogTemp, Log, TEXT("%s : %d"), *Life->GetName(), Life->LifeStatComponent->GetSpd())
+	}
 
 	int32 MobIdx = 0;
 	for (int i = 0; i < SortedAll.Num(); i++)
@@ -348,6 +365,7 @@ void ABattleGameMode::StartSelectEnemyMode()
 		FirstPC->bShowMouseCursor = false;
 		ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
 		ALifeEnemy* SelectedEnemyLife = Enemies[SelectedEnemy];
+		this->CurrentSkillTarget = SelectedEnemyLife;
 		this->MainCam->SeePlayerBackToEnemy(CurrentLife->GetActorLocation(), SelectedEnemyLife->GetActorLocation());
 	}
 }
@@ -394,6 +412,12 @@ void ABattleGameMode::EndSelectEnemyMode()
 void ABattleGameMode::ExecuteSkill()
 {
 	this->bIsSkillPlaying = true;
+
+	if (!IsValid(this->CurrentSkillTarget))
+	{
+		this->EndTurn();
+		return;
+	}
 
 	if (this->CurrentSkill.Name.IsEmpty())
 	{
@@ -461,28 +485,83 @@ void ABattleGameMode::SetCurrentSkillRecord(FRowSkillRecord Skill)
 	this->CurrentSkillRecord = Skill;
 }
 
+void ABattleGameMode::SelectPlayerLowestHp()
+{
+	int32 LowestHp = 99999;
+	ALifeHuman* LowestHpLife = nullptr;
+	for (ALifeHuman* LifeHuman : PartyMembers)
+	{
+		if (LifeHuman->LifeStatComponent->GetHp() < LowestHp)
+		{
+			LowestHp = LifeHuman->LifeStatComponent->GetHp();
+			LowestHpLife = LifeHuman;
+		}
+	}
+
+	if (IsValid(LowestHpLife))
+	{
+		this->CurrentSkillTarget = LowestHpLife;
+	}
+}
+
+void ABattleGameMode::ApplyDamage()
+{
+	ALife* CurrentTurnLife = AccessLifeByCode(this->CurrentTurnTarget);
+	if (IsValid(CurrentTurnLife) && IsValid(this->CurrentSkillTarget))
+	{
+		int32 MinDamage = CurrentTurnLife->LifeStatComponent->GetStr()*(2 + (CurrentTurnLife->LifeStatComponent->GetCon()/100));
+		int32 MaxDamage = CurrentTurnLife->LifeStatComponent->GetStr()*3.5f;
+		// 랜덤 데미지 계산
+		int32 BaseDamage = FMath::RandRange(MinDamage, MaxDamage);
+		
+		// 방어력 적용
+		int32 Defense = this->CurrentSkillTarget->LifeStatComponent->GetDef() * 1.5f;
+		int32 FinalDamage = FMath::Max(1, BaseDamage - Defense);
+
+		// Unreal Engine 기본 데미지 시스템 사용
+		UGameplayStatics::ApplyDamage(
+			this->CurrentSkillTarget,           // DamagedActor
+			FinalDamage,                         // BaseDamage
+			CurrentTurnLife->GetController(),    // EventInstigator
+			CurrentTurnLife,                     // DamageCauser
+			UDamageType::StaticClass()          // DamageTypeClass
+		);
+		
+		// 로그 출력
+		UE_LOG(LogTemp, Warning, TEXT("ApplyDamage: %s -> %s, Damage: %.0f (Base: %.0f, Def: %d)"),
+			*CurrentTurnLife->GetName(),
+			*this->CurrentSkillTarget->GetName(),
+			FinalDamage,
+			BaseDamage,
+			Defense);
+		
+		// 데미지 UI 표시
+		if (IsValid(this->MyGameInstance))
+		{
+			FString DamageText = FString::Printf(TEXT("-%d"), FinalDamage);
+			this->MyGameInstance->ShowToast(FText::FromString(DamageText));
+		}
+	}
+}
+
 // ==================================================
 // Turn Related Things
 // ==================================================
 
 void ABattleGameMode::EndTurn()
 {
-	// 현재 턴 종료
-	if (this->CurrentTurnTarget.StartsWith("Enemy_"))
-	{
-		ALifeEnemy* CurrentEnemy = Cast<ALifeEnemy>(AccessLifeByCode(CurrentTurnTarget));
-		if (IsValid(CurrentEnemy))
-		{
-			CurrentEnemy->SetMyTurn(false);
-		}
-	} else
-	{
-		ALife* CurrentPlayer = AccessLifeByCode(CurrentTurnTarget);
-	}
-
-	// 다음 턴 시작
 	this->TurnCount++;
 	this->CurrentTurnTarget = PartyOrder[TurnCount % PartyOrder.Num()];
+	// 현재 턴 종료
+	this->DispatcherGameModeTurnEnd.Broadcast();
+	this->InitNewTurn();
+}
+
+void ABattleGameMode::InitNewTurn()
+{
+	UE_LOG(LogTemp, Warning, TEXT("BattleGameMode :: InitNewTurn of %s"), *CurrentTurnTarget);
+
+	// 다음 턴 시작
 	if (this->CurrentTurnTarget.StartsWith("Enemy_"))
 	{
 		this->bIsPlayerSideTurn = false;
@@ -498,25 +577,9 @@ void ABattleGameMode::EndTurn()
 		ALife* CurrentPlayer = AccessLifeByCode(CurrentTurnTarget);
 		// 현재 컨트롤러를 현재 플레이어의 컨트롤러로 설정
 		APlayerController* PC = Cast<APlayerController>(CurrentPlayer->GetController());
-		// if (IsValid(PC)) PC->Possess(CurrentPlayer);
 	}
-	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
-	GI->ShowToast(FText::FromString("DEBUG_ENDTURN"));
-
-	this->DispatcherGameModeTurnEnd.Broadcast();
-	this->InitNewTurn();
-}
-
-void ABattleGameMode::InitNewTurn()
-{
-	UE_LOG(LogTemp, Warning, TEXT("BattleGameMode :: InitNewTurn of %s"), *CurrentTurnTarget);
-	ALife* CurrentTurnLife = AccessLifeByCode(CurrentTurnTarget);
-	if (IsValid(CurrentTurnLife))
-	{
-		this->MainCam->SeePlayerBack(CurrentTurnLife->GetActorLocation());
-		this->MainCam->StopRotation();
-		CurrentTurnLife->ResetAnim();
-	}
+	
+	this->AdjustCam();
 	this->DispatcherGameModeTurnStart.Broadcast();
 }
 

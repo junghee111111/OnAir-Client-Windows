@@ -87,7 +87,7 @@ void ABattleMainCam::SeePlayerBackToEnemy_Angle1(const FVector& SkillExecutioner
 void ABattleMainCam::SeePlayerBackToEnemy_Angle2(const FVector& SkillExecutionerPos, const FVector& TargetPos)
 {
 	this->bIsForce = true;
-	this->TargetArmLength = 200.0f;
+	this->TargetArmLength = 350.0f;
 	TargetLocation = SkillExecutionerPos + FVector(0,0,30);
 
 	FRotator Rot = UKismetMathLibrary::FindLookAtRotation(SkillExecutionerPos, TargetPos-FVector(0,0,200));

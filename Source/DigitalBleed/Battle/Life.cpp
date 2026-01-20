@@ -3,6 +3,7 @@
 
 #include "Life.h"
 
+#include "LifeHuman.h"
 #include "./Component/LifeEquipComponent.h"
 #include "./Component/LifeStatComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -27,10 +28,27 @@ void ALife::BeginPlay()
 	{
 		this->AnimInstance = MeshComp->GetAnimInstance();
 	}
-
-	// See FVector(0,0,0)
-	FRotator LookAtRotation = (GetActorLocation()-FVector(0,0,0)).Rotation();
-	SetActorRotation(FRotator(0, LookAtRotation.Yaw, 0));
+	ALifeHuman* CanIHuman = Cast<ALifeHuman>(this);
+	if (IsValid(CanIHuman))
+	{
+		// See FVector(0,0,0)
+		FTimerHandle TimerHandle;
+		GetWorldTimerManager().SetTimer(TimerHandle, [this]()
+		{
+			this->bIsMovingToTarget = true;
+			this->TargetLocation = FVector(0,0,0);
+			this->AnimInstance->Montage_Play(this->MontageRun,1.0f);
+		},3.5f, false);
+		
+		FTimerHandle TimerHandle2;
+		GetWorldTimerManager().SetTimer(TimerHandle2, [this]()
+		{
+			this->bIsMovingToTarget = false;
+			this->AnimInstance->StopAllMontages(0.1f);
+			FRotator LookAtRotation = (FVector(0,0,0)-GetActorLocation()).Rotation();
+			SetActorRotation(FRotator(0, LookAtRotation.Yaw, 0));
+		},4.0f, false);
+	}
 }
 
 void ALife::OnSkillMontageEnded(UAnimMontage* AnimMontage, bool bArg)
@@ -50,10 +68,7 @@ void ALife::OnSkillMontageEnded(UAnimMontage* AnimMontage, bool bArg)
 
 void ALife::ExecSkillMontages()
 {
-	
-
 	int32 HitCount = FMath::RandRange(this->CurrentSkill.MinHitCount, this->CurrentSkill.MaxHitCount);
-
 	switch (this->CurrentSkill.Elemental)
 	{
 	case 0:
@@ -92,15 +107,17 @@ void ALife::Tick(float DeltaTime)
 	{
 		FVector CurrentLocation = GetActorLocation();
 		float Distance = FVector::Dist(CurrentLocation, TargetLocation);
-		
 
 		if (Distance <= 10.0f) // 목표 지점에 도달
 		{
 			this->AnimInstance->StopAllMontages(0.25f);
 			SetActorLocation(TargetLocation);
 			bIsMovingToTarget = false;
-			
-			this->bReadyForExecuteSkill = true;
+
+			if (!this->CurrentSkill.Name.IsEmpty())
+			{
+				this->bReadyForExecuteSkill = true;
+			}
 			
 			if (this->bIsGoingOriginalPos == true)
 			{
@@ -115,10 +132,15 @@ void ALife::Tick(float DeltaTime)
 		}
 		else
 		{
+			FRotator LookAtRotation = (TargetLocation - CurrentLocation).Rotation();
+			SetActorRotation(FRotator(0, LookAtRotation.Yaw, 0));
 			// 타겟 위치로 이동 (보간)
-			FVector NewLocation = FMath::VInterpConstantTo(CurrentLocation, TargetLocation, DeltaTime, 1000.0f);
+			FVector NewLocation = FMath::VInterpConstantTo(CurrentLocation, TargetLocation, DeltaTime, 600.0f);
 			SetActorLocation(NewLocation);
 		}
+	} else
+	{
+		
 	}
 }
 

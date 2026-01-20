@@ -21,6 +21,24 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UTexture2D* Thumbnail;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Str;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Def;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Con;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Spd;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Int;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Luk;
 };
 
 UCLASS()

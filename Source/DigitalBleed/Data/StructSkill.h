@@ -5,6 +5,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
+#include "NiagaraSystem.h"
 #include "StructSkill.generated.h"
 
 /**
@@ -42,6 +43,16 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bIsAllAttack;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UNiagaraSystem* PreEffect;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UNiagaraSystem* ProjectileEffect;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UNiagaraSystem* HitEffect;
+	
 };
 
 USTRUCT(BlueprintType)
