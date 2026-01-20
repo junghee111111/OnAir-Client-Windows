@@ -15,6 +15,19 @@ ULifeStatComponent::ULifeStatComponent()
 }
 
 
+void ULifeStatComponent::GiveDamage(int32 Damage)
+{
+	if (this->Hp <= 0) return;
+
+	if (this->Hp - Damage < 0)
+	{
+		this->Hp = 0;
+	} else
+	{
+		this->Hp -= Damage;
+	}
+}
+
 // Called when the game starts
 void ULifeStatComponent::BeginPlay()
 {

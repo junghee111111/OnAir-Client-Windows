@@ -3,10 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Battle/Life.h"
 #include "Blueprint/UserWidget.h"
 #include "Widget3DLifeHealthBar.generated.h"
 
+class ALife;
 /**
  * 
  */
@@ -18,7 +18,7 @@ class DIGITALBLEED_API UWidget3DLifeHealthBar : public UUserWidget
 	virtual void NativeConstruct() override;
 
 protected:
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadWrite)
 	int32 DisplayHp;
 
 	UPROPERTY(BlueprintReadOnly)

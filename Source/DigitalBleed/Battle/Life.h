@@ -9,6 +9,7 @@
 #include "Data/StructSkill.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Character.h"
+#include "UI/Battle/Widget3DLifeHealthBar.h"
 #include "Life.generated.h"
 
 UCLASS(abstract)
@@ -30,7 +31,7 @@ protected:
 
 	// HP Bar Widget Class (블루프린트에서 할당)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-	TSubclassOf<class UUserWidget> HpBarWidgetClass;
+	TSubclassOf<class UWidget3DLifeHealthBar> HpBarWidgetClass;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Battle Animations")
 	UAnimMontage* MontageDefend;

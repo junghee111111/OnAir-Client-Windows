@@ -69,6 +69,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	int32 GetDef() const { return this->Def; }
 
+	UFUNCTION(BlueprintCallable)
+	void GiveDamage(int32 Damage);
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;

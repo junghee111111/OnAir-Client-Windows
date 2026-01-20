@@ -174,5 +174,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ApplyDamage();
+
+	UFUNCTION(BlueprintCallable)
+	bool GetEnemySelectMode() const { return bEnemySelectMode; };
 	
 };

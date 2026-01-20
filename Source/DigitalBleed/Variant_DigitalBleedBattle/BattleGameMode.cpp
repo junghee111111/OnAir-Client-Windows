@@ -419,6 +419,12 @@ void ABattleGameMode::StartSelectEnemyMode()
 		ALifeEnemy* SelectedEnemyLife = Enemies[SelectedEnemy];
 		this->CurrentSkillTarget = SelectedEnemyLife;
 		this->MainCam->SeePlayerBackToEnemy(CurrentLife->GetActorLocation(), SelectedEnemyLife->GetActorLocation());
+
+		for (ALifeEnemy* Enemy : Enemies)
+		{
+			Enemy->ShowHpBar();
+		}
+		
 	}
 }
 
@@ -458,12 +464,17 @@ void ABattleGameMode::EndSelectEnemyMode()
 		FirstPC->SetInputMode(FInputModeUIOnly());
 		FirstPC->bShowMouseCursor = true;
 	}
+	for (ALifeEnemy* Enemy : Enemies)
+	{
+		Enemy->HideHpBar();
+	}
 	this->MainCam->SeePlayerBack(CurrentLife->GetActorLocation());
 }
 
 void ABattleGameMode::ExecuteSkill()
 {
 	this->bIsSkillPlaying = true;
+	this->EndSelectEnemyMode();
 
 	if (!IsValid(this->CurrentSkillTarget))
 	{
@@ -489,6 +500,9 @@ void ABattleGameMode::ExecuteSkill()
 	}
 	this->MainCam->GoTowardsTarget(CurrentLife->GetActorLocation(), this->CurrentSkillTarget->GetActorLocation());
 	CurrentLife->ExecSkill(this->CurrentSkillTarget, this->CurrentSkill, this->CurrentSkillRecord);
+	
+	this->CurrentSkillTarget->ShowHpBar();
+	CurrentLife->ShowHpBar();
 
 	//스킬네임 토스트로 표출
 	FString SkillNameKey = FString::Printf(TEXT("%s_TITLE"), *this->CurrentSkillRecord.SkillId.ToString());
@@ -497,6 +511,11 @@ void ABattleGameMode::ExecuteSkill()
 
 void ABattleGameMode::EndSkill()
 {
+	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
+	
+	this->CurrentSkillTarget->HideHpBar();
+	CurrentLife->HideHpBar();
+	
 	this->bIsSkillPlaying = false;
 	this->EndTurn();
 }

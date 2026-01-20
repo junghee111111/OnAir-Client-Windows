@@ -7,6 +7,7 @@
 #include "./Component/LifeEquipComponent.h"
 #include "./Component/LifeStatComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Variant_DigitalBleedBattle/BattleGameMode.h"
 
 
 // Sets default values
@@ -60,6 +61,8 @@ void ALife::BeginPlay()
 			this->AnimInstance->StopAllMontages(0.1f);
 			FRotator LookAtRotation = (FVector(0,0,0)-GetActorLocation()).Rotation();
 			SetActorRotation(FRotator(0, LookAtRotation.Yaw, 0));
+
+			//HpBarWidgetComponent->SetWidgetClass(HpBarWidgetClass);
 		},4.0f, false);
 	}
 }
@@ -114,6 +117,9 @@ void ALife::ExecSkillMontages()
 void ALife::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	ABattleGameMode* GM = Cast<ABattleGameMode>(GetWorld()->GetAuthGameMode());
+	ALifeEnemy* CanIBeEnemy = Cast<ALifeEnemy>(this);
 
 	// 타겟 위치로 이동 중
 	if (bIsMovingToTarget)
