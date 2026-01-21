@@ -54,6 +54,9 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Battle Animations")
 	UAnimMontage* MontageDefendHit;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Battle Animations")
+	UAnimMontage* MontageDead;
+
 	UPROPERTY()
 	UAnimInstance* AnimInstance = nullptr;
 
@@ -80,6 +83,9 @@ protected:
 
 	UPROPERTY()
 	FRowSkillRecord CurrentSkillRecord;
+
+	UPROPERTY()
+	FString TempCode = "";
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Skills")
 	TArray<FRowSkillRecord> SkillRecords;
@@ -112,4 +118,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	bool GetIsDefend() const { return bIsDefend; }
+
+	void SetTmpCode(FString NewCode) { TempCode = NewCode; }
+
+	FString GetTmpCode() const { return TempCode; }
 };

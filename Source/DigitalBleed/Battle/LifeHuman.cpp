@@ -3,8 +3,6 @@
 
 #include "LifeHuman.h"
 
-#include "Kismet/KismetMathLibrary.h"
-
 
 // Sets default values
 ALifeHuman::ALifeHuman()

@@ -340,9 +340,12 @@ void ABattleGameMode::CalculatePartyOrder()
 		if (IsValid(LifeHuman))
 		{
 			PartyOrder.Add(LifeHuman->PlayerCode);
+			LifeHuman->SetTmpCode(LifeHuman->PlayerCode);
 		} else
 		{
-			PartyOrder.Add(FString::Printf(TEXT("Enemy_%d"), MobIdx));
+			FString TmpMobCode = FString::Printf(TEXT("Enemy_%d"), MobIdx);
+			PartyOrder.Add(TmpMobCode);
+			SortedAll[i]->SetTmpCode(TmpMobCode);
 			MobIdx++;
 		}
 	}
@@ -581,10 +584,10 @@ void ABattleGameMode::ApplyDamage()
 	ALife* CurrentTurnLife = AccessLifeByCode(this->CurrentTurnTarget);
 	if (IsValid(CurrentTurnLife) && IsValid(this->CurrentSkillTarget))
 	{
-		int32 MinDamage = CurrentTurnLife->LifeStatComponent->GetStr()*(2 + (CurrentTurnLife->LifeStatComponent->GetCon()/100));
-		int32 MaxDamage = CurrentTurnLife->LifeStatComponent->GetStr()*3.5f;
+		int32 MinDamage = (CurrentTurnLife->LifeStatComponent->GetStr() +  + this->CurrentSkill.BaseDamage/10.0f)*(2 + (CurrentTurnLife->LifeStatComponent->GetCon()/80));
+		int32 MaxDamage = (CurrentTurnLife->LifeStatComponent->GetStr() + this->CurrentSkill.BaseDamage/7.0f)*3.5f;
 		// 랜덤 데미지 계산
-		int32 BaseDamage = FMath::RandRange(MinDamage, MaxDamage);
+		float BaseDamage = static_cast<float>(FMath::RandRange(MinDamage, MaxDamage)) * (static_cast<float>(this->CurrentSkill.BaseDamage)/100.0f);
 		
 		// 방어력 적용
 		int32 Defense = this->CurrentSkillTarget->LifeStatComponent->GetDef() * 1.5f;
@@ -603,20 +606,56 @@ void ABattleGameMode::ApplyDamage()
 			CurrentTurnLife,                     // DamageCauser
 			UDamageType::StaticClass()          // DamageTypeClass
 		);
-		
-		// 로그 출력
-		UE_LOG(LogTemp, Warning, TEXT("ApplyDamage: %s -> %s, Damage: %d (Base: %d, Def: %d)"),
-			*CurrentTurnLife->GetName(),
-			*this->CurrentSkillTarget->GetName(),
-			FinalDamage,
-			BaseDamage,
-			Defense);
+
+		if (this->CurrentSkillTarget->LifeStatComponent->GetHp()<=FinalDamage)
+		{
+			UE_LOG(LogTemp,Warning,TEXT("[BattleGameMode] : Player Dead! %s. delete from list."),*this->CurrentSkillTarget->GetName());
+			// handle death
+			this->DeleteFromOrderedList(this->CurrentSkillTarget->GetTmpCode());
+		}
 	}
 }
 
 // ==================================================
 // Turn Related Things
 // ==================================================
+
+void ABattleGameMode::DeleteFromOrderedList(FString TmpCode)
+{
+	for (int i = 0; i < PartyOrder.Num(); i++)
+	{
+		if (PartyOrder[i] == TmpCode)
+		{
+			PartyOrder.RemoveAt(i);
+			return;
+		}
+	}
+	UE_LOG(LogTemp,Error,TEXT("[BattleGameMode::DeleteFromOrderedList] : %s Not Found."),*TmpCode);
+
+	// count leftover enemies
+	int32 EnemiesLeft = 0;
+	for (int i = 0; i < PartyOrder.Num(); i++)
+	{
+		if (PartyOrder[i].StartsWith("Enemy_"))
+		{
+			EnemiesLeft++;
+		}
+	}
+
+	if (EnemiesLeft == 0)
+	{
+		this->EndGame();
+	}
+}
+
+
+void ABattleGameMode::EndGame()
+{
+	ALifeHuman* LastMan = AccessLifeByPlayerCode(this->CurrentTurnTarget);
+	this->MainCam->SeePlayerBack(LastMan->GetActorLocation());
+	this->MainCam->StartRotation();
+}
+
 
 void ABattleGameMode::EndTurn()
 {

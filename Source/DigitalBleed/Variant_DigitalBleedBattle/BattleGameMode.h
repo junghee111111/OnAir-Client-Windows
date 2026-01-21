@@ -144,6 +144,9 @@ protected:
 	UPROPERTY(BlueprintReadWrite)
 	FRowSkillRecord CurrentSkillRecord;
 
+	void DeleteFromOrderedList(FString TmpCode);
+	void EndGame();
+
 public:
 	UFUNCTION(BlueprintCallable)
 	void EndTurn();
@@ -174,6 +177,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ApplyDamage();
+	
 
 	UFUNCTION(BlueprintCallable)
 	bool GetEnemySelectMode() const { return bEnemySelectMode; };

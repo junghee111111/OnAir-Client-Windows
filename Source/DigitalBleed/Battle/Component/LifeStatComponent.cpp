@@ -21,6 +21,7 @@ void ULifeStatComponent::GiveDamage(int32 Damage)
 
 	if (this->Hp - Damage < 0)
 	{
+		
 		this->Hp = 0;
 	} else
 	{
