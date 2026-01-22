@@ -15,6 +15,41 @@ ULifeStatComponent::ULifeStatComponent()
 }
 
 
+void ULifeStatComponent::ManipulateHp(int32 Delta)
+{
+	if (this->Hp <= 0) return;
+	if (this->Hp + Delta > this->HpMax) this->Hp = this->HpMax;
+	else this->Hp += Delta;
+	if (this->Hp + Delta < 0) this->Hp = 0;
+}
+
+void ULifeStatComponent::ManipulateHb(float Delta)
+{
+	if (this->Hp <= 0) return;
+	if (this->Hemoglobin + Delta > 20.0f) this->Hemoglobin = 20.0f;
+	else this->Hemoglobin += Delta;
+
+	if (this->Hemoglobin + Delta < 0.0f) this->Hemoglobin = 0.0f;
+}
+
+void ULifeStatComponent::ManipulateSodium(float Delta)
+{
+	if (this->Hp <= 0) return;
+	if (this->Sodium + Delta > 280.0f) this->Sodium = 280.0f;
+	else this->Sodium += Delta;
+
+	if (this->Sodium + Delta < 0.0f) this->Sodium = 0.0f;
+}
+
+void ULifeStatComponent::ManipulatePotassium(float Delta)
+{
+	if (this->Hp <= 0) return;
+	if (this->Potassium + Delta > 9.0f) this->Potassium = 9.0f;
+	else this->Potassium += Delta;
+
+	if (this->Potassium < 0.0f) this->Potassium = 0.0f;
+}
+
 void ULifeStatComponent::GiveDamage(int32 Damage)
 {
 	if (this->Hp <= 0) return;

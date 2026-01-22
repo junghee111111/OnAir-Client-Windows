@@ -90,6 +90,13 @@ void ABattleMainCam::StartRotation()
 	this->IsRotating = true;
 }
 
+void ABattleMainCam::StartRotationWithArmLength(float ArmLength)
+{
+	this->SpringArm->TargetArmLength = ArmLength;
+	this->bIsMovingToTarget = false;
+	this->IsRotating = true;
+}
+
 void ABattleMainCam::SeePlayerBackToEnemy_Angle1(const FVector& SkillExecutionerPos, const FVector& TargetPos)
 {
 	this->bIsForce = true;

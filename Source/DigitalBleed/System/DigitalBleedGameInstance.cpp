@@ -804,3 +804,34 @@ void UDigitalBleedGameInstance::ShowToastSkillName(FText RowKey)
 		WbpGlobalToast->Show(this->GetSkillString(RowKey));
 	}
 }
+
+FString UDigitalBleedGameInstance::GetItemString(const FText& RowKey)
+{
+	if (!ST_Item)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[GameInstance] : ST_Item is not assigned!"));
+		return FString(TEXT(""));
+	}
+
+	FStringTableEntryConstPtr StringData = ST_Item->GetStringTable()->FindEntry(FTextKey(
+		RowKey.ToString()
+	));
+	
+	if (StringData.IsValid())
+	{
+		return StringData->GetSourceString();
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Row '%s' not found in ST_Item!"), *RowKey.ToString());
+	return FString(TEXT(""));
+}
+
+void UDigitalBleedGameInstance::ShowToastItemName(FText RowKey)
+{
+	if (WbpGlobalToastClass->IsValidLowLevel())
+	{
+		if (!WbpGlobalToast) WbpGlobalToast = CreateWidget<UWidgetGlobalToast>(GetWorld(), WbpGlobalToastClass);
+		if (!WbpGlobalToast->IsInViewport()) WbpGlobalToast->AddToViewport(Z_INDEX_GLOBAL_TOAST);
+		WbpGlobalToast->Show(this->GetItemString(RowKey));
+	}
+}

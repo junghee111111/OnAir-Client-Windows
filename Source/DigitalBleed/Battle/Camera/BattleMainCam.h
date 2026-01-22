@@ -38,6 +38,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void StartRotation();
+	void StartRotationWithArmLength(float ArmLength);
 
 	UFUNCTION(BlueprintCallable)
 	void StopRotation();

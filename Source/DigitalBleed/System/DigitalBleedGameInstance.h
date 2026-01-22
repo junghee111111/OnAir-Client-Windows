@@ -6,6 +6,7 @@
 #include "LevelSequenceDirector.h"
 #include "MyPlayerState.h"
 #include "Data/StructDialog.h"
+#include "Data/StructItem.h"
 #include "Data/StructModal.h"
 #include "Data/StructSkill.h"
 #include "Engine/GameInstance.h"
@@ -111,6 +112,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
 	UStringTable* ST_Skill = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
+	UStringTable* ST_Item = nullptr;
+
 	UPROPERTY(BlueprintReadWrite, Category = "Party")
 	TArray<FString> PartyIn;
 
@@ -120,6 +124,8 @@ protected:
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "UserData")
 	TArray<FRowSkillRecord> SkillRecords;
 
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "UserData")
+	TArray<FRowItemRecord> ItemRecords;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Level Streaming")
 	FName LevelToStream = NAME_None;
@@ -318,4 +324,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ShowToastSkillName(FText RowKey);
+
+	UFUNCTION(BlueprintCallable)
+	FString GetItemString(const FText& ItemId);
+	
+	UFUNCTION(BlueprintCallable)
+	void ShowToastItemName(FText RowKey);
 };

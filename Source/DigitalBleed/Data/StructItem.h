@@ -27,13 +27,13 @@ public:
 	int32 HpInc;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 HbInc;
+	float HbInc;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 KInc;
+	float KInc;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 NaInc;
+	float NaInc;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString ExtraEffect1;
@@ -47,6 +47,10 @@ public:
 	// 0 : Battle-non-usable, 1 : Both-usable, 2 : Battle-only
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 CanUseInBattle;
+
+	// 0 : Players, 1 : Enemies
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Target = 0;
 
 	// 1 : Equip 2 : Consume 3 : Etc.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

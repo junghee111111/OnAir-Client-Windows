@@ -121,5 +121,6 @@ public:
 
 	void SetTmpCode(FString NewCode) { TempCode = NewCode; }
 
+	UFUNCTION(BlueprintCallable)
 	FString GetTmpCode() const { return TempCode; }
 };

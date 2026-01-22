@@ -5,9 +5,8 @@
 #include "BattleGamePlayerState.h"
 #include "Battle/LifeHuman.h"
 #include "Battle/Camera/BattleMainCam.h"
-#include "Camera/CameraActor.h"
-#include "Chaos/ChaosPerfTest.h"
 #include "GameFramework/PlayerStart.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "System/DigitalBleedGameInstance.h"
 #include "UI/Battle/WholeBattleUI.h"
@@ -465,8 +464,6 @@ void ABattleGameMode::StartSelectEnemyMode()
 		{
 			UE_LOG(LogTemp,Error,TEXT("[BattleGameMode::StartSelectEnemyMode] Invalid SelectedEnemyLife"))
 		}
-		
-		
 	}
 }
 
@@ -568,6 +565,18 @@ int32 ABattleGameMode::GetEnemyIdxFromEnemyCode(FString EnemyCode)
 	return FCString::Atoi(*Parts[1]);
 }
 
+void ABattleGameMode::ApplyItemEffect()
+{
+	if (this->CurrentItem.Name.IsEmpty()) return;
+	if (IsValid(this->CurrentItemTarget))
+	{
+		this->CurrentItemTarget->LifeStatComponent->ManipulateHp(this->CurrentItem.HpInc);
+		this->CurrentItemTarget->LifeStatComponent->ManipulateHb(this->CurrentItem.HbInc);
+		this->CurrentItemTarget->LifeStatComponent->ManipulateSodium(this->CurrentItem.NaInc);
+		this->CurrentItemTarget->LifeStatComponent->ManipulatePotassium(this->CurrentItem.KInc);
+	}
+}
+
 void ABattleGameMode::EndSelectEnemyMode()
 {
 	this->bEnemySelectMode = false;
@@ -588,6 +597,143 @@ void ABattleGameMode::EndSelectEnemyMode()
 		this->LockOnIndicator->Destroy();
 	}
 	this->MainCam->SeePlayerBack(CurrentLife->GetActorLocation());
+}
+
+void ABattleGameMode::StartSelectPlayerMode()
+{
+	this->bPlayerSelectMode = true;
+	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
+	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
+	if (IsValid(FirstPC))
+	{
+		FirstPC->SetInputMode(FInputModeGameOnly());
+		FirstPC->bShowMouseCursor = false;
+	}
+	for (ALifeHuman* Member : PartyMembers)
+	{
+		if (IsValid(Member)) Member->ShowHpBar();
+	}
+	this->MainCam->SeePlayerCenterToMargin(CurrentLife->GetActorLocation());
+	this->CurrentItemTarget = CurrentLife;
+}
+
+void ABattleGameMode::SelectNextPlayer()
+{
+	ALifeHuman* CurrentLife = Cast<ALifeHuman>(this->CurrentItemTarget);
+	int32 CurrentIdx = PartyMembers.Find(CurrentLife);
+	
+	if (CurrentIdx == INDEX_NONE)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CurrentTurnTarget not found in PartyOrder"));
+		return;
+	}
+	
+	int32 NextPlayerIdx = CurrentIdx + 1;
+	if (NextPlayerIdx >= PartyMembers.Num()) 
+	{
+		NextPlayerIdx = 0;
+	}
+	
+	this->CurrentItemTarget = AccessLifeByCode(PartyMembers[NextPlayerIdx]->PlayerCode);
+	
+	if (IsValid(this->MainCam) && IsValid(this->CurrentItemTarget))
+	{
+		this->MainCam->SeePlayerCenterToMargin(this->CurrentItemTarget->GetActorLocation());
+	}
+}
+
+void ABattleGameMode::SelectPrevPlayer()
+{
+	ALifeHuman* CurrentLife = Cast<ALifeHuman>(this->CurrentItemTarget);
+	int32 CurrentIdx = PartyMembers.Find(CurrentLife);
+	
+	if (CurrentIdx == INDEX_NONE)
+	{
+		// CurrentTurnTarget이 PartyOrder에 없는 경우
+		UE_LOG(LogTemp, Warning, TEXT("CurrentTurnTarget not found in PartyOrder"));
+		return;
+	}
+	
+	int32 PrevPlayerIdx = CurrentIdx - 1;
+	if (PrevPlayerIdx < 0) 
+	{
+		PrevPlayerIdx = PartyMembers.Num() - 1;
+	}
+	
+	this->CurrentItemTarget = AccessLifeByCode(PartyMembers[PrevPlayerIdx]->PlayerCode);
+	
+	if (IsValid(this->MainCam) && IsValid(this->CurrentItemTarget))
+	{
+		this->MainCam->SeePlayerCenterToMargin(this->CurrentItemTarget->GetActorLocation());
+	}
+}
+
+void ABattleGameMode::EndSelectPlayerMode()
+{
+	this->bPlayerSelectMode = false;
+	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
+	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
+	if (IsValid(FirstPC))
+	{
+		FirstPC->SetInputMode(FInputModeUIOnly());
+		FirstPC->bShowMouseCursor = true;
+	}
+	for (ALifeHuman* Member : PartyMembers)
+	{
+		if (IsValid(Member)) Member->HideHpBar();
+	}
+	this->MainCam->SeePlayerBack(CurrentLife->GetActorLocation());
+}
+
+void ABattleGameMode::ExecuteItem()
+{
+	if (IsValid(this->CurrentItemTarget))
+	{
+		if (this->CurrentItemTarget->LifeStatComponent->GetHp() <= 0)
+		{
+			MyGameInstance->ShowToast(FText::FromString("BATTLE_ALREADY_DEAD"));
+			return;
+		}
+	}
+	this->bIsItemPlaying = true;
+	this->EndSelectEnemyMode();
+	this->EndSelectPlayerMode();
+
+	FString ItemNameKey = FString::Printf(TEXT("%s_NAME"), *this->CurrentItemRecord.ItemId.ToString());
+	this->MyGameInstance->ShowToastItemName(FText::FromString(ItemNameKey));
+
+	if (IsValid(this->CurrentItemTarget))
+	{
+		this->MainCam->SeePlayerCenterToMargin(this->CurrentItemTarget->GetActorLocation());
+		this->MainCam->StartRotationWithArmLength(200.0f);
+
+		
+		if (this->CurrentItem.PreEffect)
+		{
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				GetWorld(),
+				this->CurrentItem.PreEffect,
+				this->CurrentItemTarget->GetActorLocation() - FVector(0.0f, 0.0f, 80.0f),
+				FRotator::ZeroRotator,
+				FVector(1.0f),
+				true,
+				true,
+				ENCPoolMethod::None,
+				true
+			);
+			this->MyGameInstance->PlaySFX(this->SFX_ItemUse);
+		}
+
+		this->ApplyItemEffect();
+
+		FTimerHandle Th;
+		GetWorldTimerManager().SetTimer(Th, [this]()
+		{
+			this->bIsItemPlaying = false;
+			this->bItemSelectedMode = false;
+			this->EndTurn();
+		},2.0f, false);
+	}
 }
 
 void ABattleGameMode::ExecuteSkill()

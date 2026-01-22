@@ -40,6 +40,9 @@ protected:
 	UPROPERTY()
 	TArray<APlayerController*> PlayerControllers;
 
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Sound")
+	USoundBase* SFX_ItemUse = nullptr;
+
 	void SpawnPlayers();
 
 	UPROPERTY(BlueprintReadOnly, Category = "Battle")
@@ -55,16 +58,28 @@ protected:
 	bool bEnemySelectMode = false;
 
 	UPROPERTY(BlueprintReadOnly)
+	bool bPlayerSelectMode = false;
+
+	UPROPERTY(BlueprintReadOnly)
 	bool bCTScanMode = false;
+
+	UPROPERTY(BlueprintReadWrite)
+	bool bItemSelectedMode = false;
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsSkillPlaying = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsItemPlaying = false;
 
 	UPROPERTY(BlueprintReadOnly)
 	FString CurrentTurnTarget = "";
 
 	UPROPERTY(BlueprintReadOnly)
 	ALife* CurrentSkillTarget = nullptr;
+
+	UPROPERTY(BlueprintReadOnly)
+	ALife* CurrentItemTarget = nullptr;
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 TurnCount = 0;
@@ -147,12 +162,29 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void SelectPrevEnemy();
+
+	UFUNCTION(BlueprintCallable)
+	void EndSelectEnemyMode();
+
+	UFUNCTION(BlueprintCallable)
+	void StartSelectPlayerMode();
+
+	UFUNCTION(BlueprintCallable)
+	void SelectNextPlayer();
+
+	UFUNCTION(BlueprintCallable)
+	void SelectPrevPlayer();
+
+	UFUNCTION(BlueprintCallable)
+	void EndSelectPlayerMode();
+	
 	int32 GetFirstAliveEnemy();
 	int32 GetLastAliveEnemy();
 	int32 GetEnemyIdxFromEnemyCode(FString EnemyCode);
 
+	void ApplyItemEffect();
 	UFUNCTION(BlueprintCallable)
-	void EndSelectEnemyMode();
+	void ExecuteItem();
 
 	UFUNCTION(BlueprintCallable)
 	void ExecuteSkill();
@@ -165,6 +197,12 @@ protected:
 
 	UPROPERTY(BlueprintReadWrite)
 	FRowSkillRecord CurrentSkillRecord;
+
+	UPROPERTY(BlueprintReadWrite)
+	FRowItem CurrentItem;
+
+	UPROPERTY(BlueprintReadWrite)
+	FRowItemRecord CurrentItemRecord;
 
 	void DeleteFromOrderedList(FString TmpCode);
 	void EndGame();

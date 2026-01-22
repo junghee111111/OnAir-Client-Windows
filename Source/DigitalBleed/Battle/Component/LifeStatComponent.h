@@ -78,6 +78,19 @@ public:
 	int32 GetLevel() const { return this->Level; }
 
 	UFUNCTION(BlueprintCallable)
+	void ManipulateHp(int32 Delta);
+
+	UFUNCTION(BlueprintCallable)
+	void ManipulateHb(float Delta);
+
+	UFUNCTION(BlueprintCallable)
+	void ManipulateSodium(float Delta);
+	
+	UFUNCTION(BlueprintCallable)
+	void ManipulatePotassium(float Delta);
+	
+
+	UFUNCTION(BlueprintCallable)
 	void GiveDamage(int32 Damage);
 	
 	void DecreaseIons();
