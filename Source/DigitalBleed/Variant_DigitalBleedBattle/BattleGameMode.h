@@ -16,6 +16,7 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTurnEnd);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTurnStart);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLifeHit);
 
 UCLASS()
 class DIGITALBLEED_API ABattleGameMode : public AGameMode
@@ -30,7 +31,8 @@ public:
 	void SpawnEnemies();
 	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 	virtual void Tick(float DeltaSeconds) override;
-	
+	void StartIonTimer();
+
 
 protected:
 	void AdjustCam();
@@ -53,6 +55,9 @@ protected:
 	bool bEnemySelectMode = false;
 
 	UPROPERTY(BlueprintReadOnly)
+	bool bCTScanMode = false;
+
+	UPROPERTY(BlueprintReadOnly)
 	bool bIsSkillPlaying = false;
 
 	UPROPERTY(BlueprintReadOnly)
@@ -68,6 +73,12 @@ protected:
 	TArray<FString> PartyOrder;
 
 	UPROPERTY(BlueprintReadOnly)
+	TArray<FString> DeadList;
+
+	UPROPERTY()
+	int32 NumDeadEnemies = 0;
+
+	UPROPERTY(BlueprintReadOnly)
 	TArray<ALifeHuman*> PartyMembers;
 
 	UPROPERTY(BlueprintReadOnly)
@@ -78,7 +89,15 @@ protected:
 
 	UPROPERTY()
 	UDigitalBleedGameInstance* MyGameInstance = nullptr;
-	
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere)
+	TSubclassOf<AActor> LockOnIndicatorClass = nullptr;
+
+	UPROPERTY(BlueprintReadOnly)
+	AActor* LockOnIndicator = nullptr;
+
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FTimerHandle> IonTimerHandles = {};
 
 	UFUNCTION()
 	void RegisterPlayerController(APlayerController* PC);
@@ -128,6 +147,9 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void SelectPrevEnemy();
+	int32 GetFirstAliveEnemy();
+	int32 GetLastAliveEnemy();
+	int32 GetEnemyIdxFromEnemyCode(FString EnemyCode);
 
 	UFUNCTION(BlueprintCallable)
 	void EndSelectEnemyMode();
@@ -165,6 +187,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Turn")
 	FOnTurnStart DispatcherGameModeTurnStart;
+
+	UPROPERTY(BlueprintAssignable, Category = "Turn")
+	FOnLifeHit DispatcherLifeHit;
 
 	UFUNCTION(BlueprintCallable)
 	void SetCurrentSkill(FRowSkill Skill);

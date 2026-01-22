@@ -61,7 +61,6 @@ void ALife::BeginPlay()
 			this->AnimInstance->StopAllMontages(0.1f);
 			FRotator LookAtRotation = (FVector(0,0,0)-GetActorLocation()).Rotation();
 			SetActorRotation(FRotator(0, LookAtRotation.Yaw, 0));
-
 			//HpBarWidgetComponent->SetWidgetClass(HpBarWidgetClass);
 		},4.0f, false);
 	}

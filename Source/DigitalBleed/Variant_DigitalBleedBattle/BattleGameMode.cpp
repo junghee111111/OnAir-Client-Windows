@@ -6,6 +6,7 @@
 #include "Battle/LifeHuman.h"
 #include "Battle/Camera/BattleMainCam.h"
 #include "Camera/CameraActor.h"
+#include "Chaos/ChaosPerfTest.h"
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
 #include "System/DigitalBleedGameInstance.h"
@@ -26,6 +27,7 @@ void ABattleGameMode::SpawnEnemies()
 		FVector SpawnLocation = FVector(0, 0, 0);
 		FRotator SpawnRotation = FRotator(0, 0, 0);
 		ALifeEnemy* Enemy = GetWorld()->SpawnActor<ALifeEnemy>(this->LifeEnemies[0], SpawnLocation, SpawnRotation);
+		Enemy->SetTmpCode("Enemy_0");
 		Enemies.Add(Enemy);
 	}
 	if (this->LifeEnemies.Num() > 1)
@@ -41,6 +43,7 @@ void ABattleGameMode::SpawnEnemies()
 			FRotator LookRotation = (SpawnLocation-FVector(0,0,0)).Rotation();
 			FRotator SpawnRotation = FRotator(0, LookRotation.Yaw, 0);
 			ALifeEnemy* Enemy = GetWorld()->SpawnActor<ALifeEnemy>(this->LifeEnemies[i], SpawnLocation, SpawnRotation);
+			Enemy->SetTmpCode(FString::Printf(TEXT("Enemy_%d"),i));
 			Enemies.Add(Enemy);
 		}
 	}
@@ -95,6 +98,25 @@ void ABattleGameMode::Tick(float DeltaSeconds)
 	
 }
 
+void ABattleGameMode::StartIonTimer()
+{
+	for (ALife* Life : PartyMembers)
+	{
+		FTimerHandle TimerHandle;
+		float TimerDuration = Life->LifeStatComponent->GetCon()/50.0f
+			+Life->LifeStatComponent->GetLevel()/50.0f
+			+2.0f;
+		
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this,Life]()
+		{
+			Life->LifeStatComponent->DecreaseIons();
+			this->DispatcherLifeHit.Broadcast();
+		}, TimerDuration, true);
+		this->IonTimerHandles.Add(TimerHandle);
+	}
+	
+}
+
 void ABattleGameMode::AdjustCam()
 {
 	ALife* CurrentTurnLife = AccessLifeByCode(CurrentTurnTarget);
@@ -140,13 +162,14 @@ void ABattleGameMode::SpawnPlayers()
 			{
 				// PC->Possess(LifeHuman);
 				LifeHuman->PlayerCode = GI->GetPartyMembers()[i];
+				LifeHuman->SetTmpCode(GI->GetPartyMembers()[i]);
 				PartyMembers.Add(LifeHuman);
 			}
 
 			UE_LOG(
 			LogTemp, Warning,
-			TEXT("BattleGameMode :: SpawnPlayer at Pos : %d, Num : %d"),
-			i, PlayerControllers.Num());
+			TEXT("BattleGameMode :: SpawnPlayer (%s) at Pos : %d, Num : %d"),
+			*GI->GetPartyMembers()[i], i, PlayerControllers.Num());
 		}
 	}
 }
@@ -245,6 +268,7 @@ void ABattleGameMode::BeginPlay()
 		if (IsValid(MyLifeHuman))
 		{
 			MyLifeHuman->PlayerCode = this->MyGameInstance->GetPartyMembers()[0]; // 첫 번째 PlayerCode 설정
+			MyLifeHuman->SetTmpCode(this->MyGameInstance->GetPartyMembers()[0]);
 			PartyMembers.Add(MyLifeHuman);
 			MyLifeHuman->SetActorLocationAndRotation(PlayerStarts[0]->GetActorLocation(),PlayerStarts[0]->GetActorRotation());
 			// FirstPC->Possess(MyLifeHuman);
@@ -272,6 +296,13 @@ void ABattleGameMode::BeginPlay()
 		this->InitializeUI();
 		this->InitNewTurn();
 	}, 3.0f, false);
+
+	FTimerHandle TimerHandle3;
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle3, [this]()
+	{
+		this->StartIonTimer();
+		this->AdjustCam();
+	}, 4.0f, false);
 }
 
 void ABattleGameMode::CalculatePartyOrder()
@@ -340,12 +371,10 @@ void ABattleGameMode::CalculatePartyOrder()
 		if (IsValid(LifeHuman))
 		{
 			PartyOrder.Add(LifeHuman->PlayerCode);
-			LifeHuman->SetTmpCode(LifeHuman->PlayerCode);
 		} else
 		{
 			FString TmpMobCode = FString::Printf(TEXT("Enemy_%d"), MobIdx);
 			PartyOrder.Add(TmpMobCode);
-			SortedAll[i]->SetTmpCode(TmpMobCode);
 			MobIdx++;
 		}
 	}
@@ -359,9 +388,8 @@ void ABattleGameMode::CalculatePartyOrder()
 void ABattleGameMode::CTScan()
 {
 	if (bIsPlayerSideTurn==false) return;
-	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
-	ALifeHuman* CurrentTurnLife = AccessLifeByPlayerCode(CurrentTurnTarget);
-	this->MainCam->SeePlayerBackToEnemy(CurrentTurnLife->GetActorLocation(), Enemies[0]->GetActorLocation());
+	bCTScanMode = true;
+	StartSelectEnemyMode();
 }
 
 void ABattleGameMode::CameraSeeEnemyOnly(int32 EnemyIdx)
@@ -421,45 +449,129 @@ void ABattleGameMode::StartSelectEnemyMode()
 		ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
 		ALifeEnemy* SelectedEnemyLife = Enemies[SelectedEnemy];
 		this->CurrentSkillTarget = SelectedEnemyLife;
-		this->MainCam->SeePlayerBackToEnemy(CurrentLife->GetActorLocation(), SelectedEnemyLife->GetActorLocation());
 
-		for (ALifeEnemy* Enemy : Enemies)
+		if (IsValid(SelectedEnemyLife))
 		{
-			Enemy->ShowHpBar();
+			this->MainCam->SeePlayerBackToEnemy(CurrentLife->GetActorLocation(), SelectedEnemyLife->GetActorLocation());
+			
+			this->LockOnIndicator = GetWorld()->SpawnActor(LockOnIndicatorClass);
+			if (IsValid(this->LockOnIndicator)) this->LockOnIndicator->SetActorLocation(SelectedEnemyLife->GetActorLocation());
+			
+			for (ALifeEnemy* Enemy : Enemies)
+			{
+				if (IsValid(Enemy)) Enemy->ShowHpBar();
+			}
+		} else
+		{
+			UE_LOG(LogTemp,Error,TEXT("[BattleGameMode::StartSelectEnemyMode] Invalid SelectedEnemyLife"))
 		}
+		
 		
 	}
 }
 
 void ABattleGameMode::SelectNextEnemy()
 {
-	SelectedEnemy++;
-	if (SelectedEnemy >= LifeEnemies.Num())
+	this->SelectedEnemy++;
+	if (SelectedEnemy >= LifeEnemies.Num()) SelectedEnemy = GetFirstAliveEnemy();
+	
+	FString NextEnemyTmpCode = FString::Printf(TEXT("Enemy_%d"),SelectedEnemy);
+	
+	if (DeadList.Contains(NextEnemyTmpCode))
 	{
-		SelectedEnemy = 0;
+		UE_LOG(LogTemp, Log, TEXT("%s -- Canceled"), *NextEnemyTmpCode);
+		this->SelectNextEnemy();
+		return;
 	}
+	UE_LOG(LogTemp, Log, TEXT("%s"), *NextEnemyTmpCode);
 	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
 	ALifeEnemy* SelectedEnemyLife = Enemies[SelectedEnemy];
+	if (!IsValid(SelectedEnemyLife)) return;
 	this->MainCam->SeePlayerBackToEnemy(CurrentLife->GetActorLocation(), SelectedEnemyLife->GetActorLocation());
 	this->CurrentSkillTarget = SelectedEnemyLife;
+
+	if (IsValid(this->LockOnIndicator)) this->LockOnIndicator->SetActorLocation(SelectedEnemyLife->GetActorLocation());
 }
 
 void ABattleGameMode::SelectPrevEnemy()
 {
-	SelectedEnemy--;
-	if (SelectedEnemy < 0)
+	this->SelectedEnemy--;
+	if (SelectedEnemy < 0) SelectedEnemy = GetLastAliveEnemy();
+	
+	FString PrevEnemyTmpCode = FString::Printf(TEXT("Enemy_%d"),SelectedEnemy);
+	
+	if (DeadList.Contains(PrevEnemyTmpCode))
 	{
-		SelectedEnemy = LifeEnemies.Num()-1;
+		UE_LOG(LogTemp, Log, TEXT("%s -- Canceled"), *PrevEnemyTmpCode);
+		this->SelectPrevEnemy();
+		return;
 	}
+	UE_LOG(LogTemp, Log, TEXT("%s"), *PrevEnemyTmpCode);
+	
 	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
 	ALifeEnemy* SelectedEnemyLife = Enemies[SelectedEnemy];
+	if (!IsValid(SelectedEnemyLife)) return;
 	this->MainCam->SeePlayerBackToEnemy(CurrentLife->GetActorLocation(), SelectedEnemyLife->GetActorLocation());
 	this->CurrentSkillTarget = SelectedEnemyLife;
+
+	if (IsValid(this->LockOnIndicator)) this->LockOnIndicator->SetActorLocation(SelectedEnemyLife->GetActorLocation());
+}
+
+int32 ABattleGameMode::GetFirstAliveEnemy()
+{
+	for (int32 i = 0; i<PartyOrder.Num(); i++)
+	{
+		if (PartyOrder[i].StartsWith("Enemy_"))
+		{
+			ALife* Enemy = this->AccessLifeByCode(PartyOrder[i]);
+			if (IsValid(Enemy))
+			{
+				if (DeadList.Contains(PartyOrder[i]) == false)
+				{
+					return GetEnemyIdxFromEnemyCode(PartyOrder[i]);
+				}
+			} 
+		}
+	}
+	return -1;
+}
+
+int32 ABattleGameMode::GetLastAliveEnemy()
+{
+	int32 Order = -1;
+	for (int32 i = 0; i<PartyOrder.Num(); i++)
+	{
+		if (PartyOrder[i].StartsWith("Enemy_"))
+		{
+			ALife* Enemy = this->AccessLifeByCode(PartyOrder[i]);
+			if (IsValid(Enemy))
+			{
+				if (DeadList.Contains(PartyOrder[i]) == false)
+				{
+					if (Order < GetEnemyIdxFromEnemyCode(PartyOrder[i]))
+					{
+						Order = GetEnemyIdxFromEnemyCode(PartyOrder[i]);
+					}
+				}
+			} 
+		}
+	}
+	return Order;
+}
+
+int32 ABattleGameMode::GetEnemyIdxFromEnemyCode(FString EnemyCode)
+{
+	TArray<FString> Parts;
+	EnemyCode.ParseIntoArray(Parts, TEXT("_"));
+
+	if (Parts.Num() < 2) return -1;
+	return FCString::Atoi(*Parts[1]);
 }
 
 void ABattleGameMode::EndSelectEnemyMode()
 {
 	this->bEnemySelectMode = false;
+	if (this->bCTScanMode) this->bCTScanMode = false;
 	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
 	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
 	if (IsValid(FirstPC))
@@ -469,47 +581,63 @@ void ABattleGameMode::EndSelectEnemyMode()
 	}
 	for (ALifeEnemy* Enemy : Enemies)
 	{
-		Enemy->HideHpBar();
+		if (IsValid(Enemy)) Enemy->HideHpBar();
+	}
+	if (IsValid(this->LockOnIndicator))
+	{
+		this->LockOnIndicator->Destroy();
 	}
 	this->MainCam->SeePlayerBack(CurrentLife->GetActorLocation());
 }
 
 void ABattleGameMode::ExecuteSkill()
 {
+	//스킬네임 토스트로 표출
 	this->bIsSkillPlaying = true;
 	this->EndSelectEnemyMode();
-
-	if (!IsValid(this->CurrentSkillTarget))
-	{
-		this->EndTurn();
-		return;
-	}
-
-	if (this->CurrentSkill.Name.IsEmpty())
-	{
-		this->EndTurn();
-		return;
-	}
-	
-	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
-	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
-	
-	if (IsValid(FirstPC))
-	{
-		
-		FirstPC->SetInputMode(FInputModeUIOnly());
-		FirstPC->bShowMouseCursor = true;
-		
-	}
-	this->MainCam->GoTowardsTarget(CurrentLife->GetActorLocation(), this->CurrentSkillTarget->GetActorLocation());
-	CurrentLife->ExecSkill(this->CurrentSkillTarget, this->CurrentSkill, this->CurrentSkillRecord);
-	
-	this->CurrentSkillTarget->ShowHpBar();
-	CurrentLife->ShowHpBar();
-
-	//스킬네임 토스트로 표출
 	FString SkillNameKey = FString::Printf(TEXT("%s_TITLE"), *this->CurrentSkillRecord.SkillId.ToString());
 	this->MyGameInstance->ShowToastSkillName(FText::FromString(SkillNameKey));
+	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
+
+	// 만약 플레이어가 스킬을 시전하면 면상을 한번 보여주게함
+	if (!this->CurrentTurnTarget.StartsWith("Enemy_"))
+	{
+		this->MainCam->SeePlayerCenterToMargin(CurrentLife->GetActorLocation());
+	}
+
+	FTimerHandle Th;
+	GetWorldTimerManager().SetTimer(Th, [this]()
+	{
+		UE_LOG(LogTemp, Log, TEXT("Execute Skill to %s from %s"), *this->CurrentSkillTarget->GetTmpCode(), *this->CurrentTurnTarget);
+
+		if (!IsValid(this->CurrentSkillTarget))
+		{
+			this->EndTurn();
+			return;
+		}
+
+		if (this->CurrentSkill.Name.IsEmpty())
+		{
+			this->EndTurn();
+			return;
+		}
+		
+		APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
+		ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
+		
+		if (IsValid(FirstPC))
+		{
+			
+			FirstPC->SetInputMode(FInputModeUIOnly());
+			FirstPC->bShowMouseCursor = true;
+			
+		}
+		this->MainCam->GoTowardsTarget(CurrentLife->GetActorLocation(), this->CurrentSkillTarget->GetActorLocation());
+		CurrentLife->ExecSkill(this->CurrentSkillTarget, this->CurrentSkill, this->CurrentSkillRecord);
+		
+		this->CurrentSkillTarget->ShowHpBar();
+		CurrentLife->ShowHpBar();
+	},1.0f, false);
 }
 
 void ABattleGameMode::EndSkill()
@@ -566,6 +694,7 @@ void ABattleGameMode::SelectPlayerLowestHp()
 	ALifeHuman* LowestHpLife = nullptr;
 	for (ALifeHuman* LifeHuman : PartyMembers)
 	{
+		if (LifeHuman->LifeStatComponent->GetHp() <= 0) continue;
 		if (LifeHuman->LifeStatComponent->GetHp() < LowestHp)
 		{
 			LowestHp = LifeHuman->LifeStatComponent->GetHp();
@@ -607,10 +736,21 @@ void ABattleGameMode::ApplyDamage()
 			UDamageType::StaticClass()          // DamageTypeClass
 		);
 
-		if (this->CurrentSkillTarget->LifeStatComponent->GetHp()<=FinalDamage)
+		this->DispatcherLifeHit.Broadcast();
+		if (this->CurrentSkillTarget->LifeStatComponent->GetHp()<=0)
 		{
-			UE_LOG(LogTemp,Warning,TEXT("[BattleGameMode] : Player Dead! %s. delete from list."),*this->CurrentSkillTarget->GetName());
+			FTimerHandle Th;
+			FVector SavedTargetPos = this->CurrentSkillTarget->GetActorLocation();
+			GetWorldTimerManager().SetTimer(Th, [this,SavedTargetPos]()
+			{
+				ALife* CurrentTurnLife = AccessLifeByCode(this->CurrentTurnTarget);
+				if (IsValid(CurrentTurnLife))
+				{
+					this->MainCam->SeePlayerBackToEnemy(CurrentTurnLife->GetActorLocation(), SavedTargetPos);
+				}
+			},3.0f,false);
 			// handle death
+			UE_LOG(LogTemp,Log,TEXT("[BattleGameMode] : Handle %s death"),*this->CurrentSkillTarget->GetTmpCode());
 			this->DeleteFromOrderedList(this->CurrentSkillTarget->GetTmpCode());
 		}
 	}
@@ -622,30 +762,37 @@ void ABattleGameMode::ApplyDamage()
 
 void ABattleGameMode::DeleteFromOrderedList(FString TmpCode)
 {
-	for (int i = 0; i < PartyOrder.Num(); i++)
+	bool already = false;
+	
+	if (!this->DeadList.Contains(TmpCode))
 	{
-		if (PartyOrder[i] == TmpCode)
-		{
-			PartyOrder.RemoveAt(i);
-			return;
-		}
+		UE_LOG(LogTemp,Log,TEXT("[BattleGameMode] : %s (%s) DEAD. add to dead list."),*this->CurrentSkillTarget->GetName(), *TmpCode);
+		this->DeadList.Add(TmpCode);
+	}else
+	{
+		already = true;
 	}
-	UE_LOG(LogTemp,Error,TEXT("[BattleGameMode::DeleteFromOrderedList] : %s Not Found."),*TmpCode);
+	if (already) return;
 
 	// count leftover enemies
-	int32 EnemiesLeft = 0;
-	for (int i = 0; i < PartyOrder.Num(); i++)
-	{
-		if (PartyOrder[i].StartsWith("Enemy_"))
-		{
-			EnemiesLeft++;
-		}
-	}
 
-	if (EnemiesLeft == 0)
+	if (TmpCode.StartsWith("Enemy_"))
+	{
+		NumDeadEnemies ++;
+	}
+	
+	if (NumDeadEnemies == Enemies.Num())
 	{
 		this->EndGame();
+		return;
 	}
+
+	if (TmpCode.StartsWith("Enemy_"))
+	{
+		this->SelectedEnemy = GetFirstAliveEnemy();
+		UE_LOG(LogTemp,Log,TEXT("[BattleGameMode] : Now Auto Selected Enemy is %d"),this->SelectedEnemy);
+	}
+	
 }
 
 
@@ -659,11 +806,22 @@ void ABattleGameMode::EndGame()
 
 void ABattleGameMode::EndTurn()
 {
+	UE_LOG(LogTemp, Warning, TEXT("BattleGameMode :: End turn of %s"), *this->CurrentTurnTarget);
 	this->TurnCount++;
 	this->CurrentTurnTarget = PartyOrder[TurnCount % PartyOrder.Num()];
-	// 현재 턴 종료
-	this->DispatcherGameModeTurnEnd.Broadcast();
-	this->InitNewTurn();
+
+	UE_LOG(LogTemp, Warning, TEXT("BattleGameMode :: Try to start turn of %s"), *this->CurrentTurnTarget);
+	if (DeadList.Contains(this->CurrentTurnTarget))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BattleGameMode :: turn of %s already dead. retry.."), *this->CurrentTurnTarget);
+		this->EndTurn();
+	} else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BattleGameMode :: Turn : %d, Current Party Numbers! %d, Dead List : %d"), this->TurnCount,PartyOrder.Num(), DeadList.Num());
+		// 현재 턴 종료
+		this->DispatcherGameModeTurnEnd.Broadcast();
+		this->InitNewTurn();
+	}
 }
 
 void ABattleGameMode::InitNewTurn()

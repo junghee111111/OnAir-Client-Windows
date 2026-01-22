@@ -38,8 +38,27 @@ void ABattleMainCam::SeePlayerBack(const FVector PlayerPos)
 	bIsMovingToTarget = true;
 }
 
-void ABattleMainCam::SeeEnemyBackToPlayer()
+void ABattleMainCam::SeePlayerCenterToMargin(const FVector PlayerPos)
 {
+	this->TargetArmLength = 150.0f;
+	TargetLocation = PlayerPos;
+
+	FRotator Rot = UKismetMathLibrary::FindLookAtRotation(FVector(0,0,100),PlayerPos);
+	TargetRotation = Rot;
+
+	bIsMovingToTarget = true;
+	bIsForce = true;
+}
+
+void ABattleMainCam::SeeEnemyBackToPlayer(FVector PlayerPos, FVector EnemyPos)
+{
+	this->TargetArmLength = 200.0f;
+	TargetLocation = EnemyPos + FVector(0,0,70);
+
+	FRotator Rot = UKismetMathLibrary::FindLookAtRotation(EnemyPos, PlayerPos);
+	TargetRotation = Rot;
+	bIsMovingToTarget = true;
+	this->bIsForce = true;
 }
 
 void ABattleMainCam::GoTowardsTarget(FVector PlayerPos, FVector EnemyPos)

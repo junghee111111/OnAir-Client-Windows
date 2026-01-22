@@ -13,6 +13,8 @@ class DIGITALBLEED_API ULifeStatComponent : public UActorComponent
 	GENERATED_BODY()
 
 protected:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	int32 Level = 1;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	int32 Str = 10; //공격
@@ -27,13 +29,16 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	int32 Con = 10; //회피
 
+	UPROPERTY(BlueprintReadWrite)
+	int32 Hp = 300;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	int32 Hp = 100;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	int32 HpMax = 100;
+	int32 HpMax = 300;
 
-	float Hemoglobin = 10.0f;
+	UPROPERTY(BlueprintReadWrite)
+	float Hemoglobin = 12.0f;
+	UPROPERTY(BlueprintReadWrite)
 	float Sodium = 140.0f;
+	UPROPERTY(BlueprintReadWrite)
 	float Potassium = 4.5f;
 
 	// -1 : Weak, 0 : Normal, 1 : Immune, 2 : Nothing, 3 : Reflect, 4 : Absorb
@@ -70,7 +75,12 @@ public:
 	int32 GetDef() const { return this->Def; }
 
 	UFUNCTION(BlueprintCallable)
+	int32 GetLevel() const { return this->Level; }
+
+	UFUNCTION(BlueprintCallable)
 	void GiveDamage(int32 Damage);
+	
+	void DecreaseIons();
 
 protected:
 	// Called when the game starts

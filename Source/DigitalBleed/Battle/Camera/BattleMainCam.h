@@ -25,9 +25,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SeePlayerBack(const FVector PlayerPos);
+	void SeePlayerCenterToMargin(FVector PlayerPos);
 
 	UFUNCTION(BlueprintCallable)
-	void SeeEnemyBackToPlayer();
+	void SeeEnemyBackToPlayer(FVector PlayerPos, FVector EnemyPos);
 
 	UFUNCTION(BlueprintCallable)
 	void GoTowardsTarget(FVector PlayerPos, FVector EnemyPos);
