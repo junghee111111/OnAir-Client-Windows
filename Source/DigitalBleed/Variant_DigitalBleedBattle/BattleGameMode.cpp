@@ -16,7 +16,7 @@
 
 namespace BattleConstants
 {
-	constexpr float ENEMY_SPAWN_RADIUS = 200.0f;
+	constexpr float ENEMY_SPAWN_RADIUS = 200.0f; // 적들을 원형으로 중앙에 배치하는데 이것의 radius이다.
 	constexpr float TIMER_CALCULATE_ORDER = 0.5f;
 	constexpr float TIMER_INIT_UI = 3.0f;
 	constexpr float TIMER_START_ION = 4.0f;
@@ -27,8 +27,8 @@ namespace BattleConstants
 	constexpr float WEAK_DAMAGE_MULTIPLIER = 1.2f;
 	constexpr float IMMUNE_DAMAGE_MULTIPLIER = 0.5f;
 	constexpr float DEFENSE_MULTIPLIER = 1.5f;
-	constexpr int32 ION_TIMER_BASE = 2;
-	constexpr float ION_TIMER_DIVISOR = 50.0f;
+	constexpr int32 ION_TIMER_BASE = 2; // 기본적으로 몇초에 한번씩 이온을 떨어뜨릴것인가?
+	constexpr float ION_TIMER_DIVISOR = 50.0f; // 이온 타이머 관련 나눗셈 상수
 }
 
 ABattleGameMode::ABattleGameMode()
@@ -630,6 +630,9 @@ void ABattleGameMode::EndSelectEnemyMode()
 	this->bEnemySelectMode = false;
 	if (this->bCTScanMode) this->bCTScanMode = false;
 	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
+	FirstPC->SetInputMode(FInputModeUIOnly());
+	FirstPC->bShowMouseCursor = true;
+	
 	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
 	for (ALifeEnemy* Enemy : Enemies)
 	{
@@ -715,6 +718,9 @@ void ABattleGameMode::EndSelectPlayerMode()
 {
 	this->bPlayerSelectMode = false;
 	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
+	FirstPC->SetInputMode(FInputModeUIOnly());
+	FirstPC->bShowMouseCursor = true;
+	
 	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
 	for (ALifeHuman* Member : PartyMembers)
 	{
@@ -936,7 +942,7 @@ void ABattleGameMode::ApplyDamage()
 		float BaseDamage = static_cast<float>(FMath::RandRange(MinDamage, MaxDamage)) * (static_cast<float>(this->CurrentSkill.BaseDamage)/100.0f);
 		
 		// 방어력 적용
-		int32 Defense = this->CurrentSkillTarget->LifeStatComponent->GetDef() * 1.5f;
+		int32 Defense = this->CurrentSkillTarget->LifeStatComponent->GetDef() * BattleConstants::DEFENSE_MULTIPLIER;
 		int32 FinalDamage = FMath::Max(1, BaseDamage - Defense);
 
 		if (this->CurrentSkillTarget->GetIsDefend())
@@ -983,10 +989,10 @@ void ABattleGameMode::ApplyDamage()
 
 		if (bIsWeak)
 		{
-			FinalDamage *= 1.2f;
+			FinalDamage *= BattleConstants::WEAK_DAMAGE_MULTIPLIER;
 		} else if (bIsImmune)
 		{
-			FinalDamage *= 0.5f;
+			FinalDamage *= BattleConstants::IMMUNE_DAMAGE_MULTIPLIER;
 		}
 
 		// Unreal Engine 기본 데미지 시스템 사용

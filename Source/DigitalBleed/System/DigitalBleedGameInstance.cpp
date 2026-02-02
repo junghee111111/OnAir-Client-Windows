@@ -868,3 +868,95 @@ void UDigitalBleedGameInstance::AddMoneyBtc(float Delta)
 	this->Money_Btc += Delta;
 	if (this->Money_Btc < 0) this->Money_Btc = 0;
 }
+
+bool UDigitalBleedGameInstance::AddItem(FName ItemId, int32 Qty)
+{
+	if (Qty <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameInstance::AddItem] Invalid quantity: %d"), Qty);
+		return false;
+	}
+
+	// 기존 아이템 검색
+	FRowItemRecord* ExistingItem = ItemRecords.FindByPredicate([ItemId](const FRowItemRecord& Item)
+	{
+		return Item.ItemId == ItemId;
+	});
+
+	if (ExistingItem)
+	{
+		// 이미 있는 아이템이면 수량 증가
+		ExistingItem->Qty += Qty;
+		UE_LOG(LogTemp, Log, TEXT("[GameInstance::AddItem] Updated item %s. New Qty: %d"), *ItemId.ToString(), ExistingItem->Qty);
+	}
+	else
+	{
+		// 새로운 아이템 추가
+		FRowItemRecord NewItem;
+		NewItem.ItemId = ItemId;
+		NewItem.Qty = Qty;
+		ItemRecords.Add(NewItem);
+		UE_LOG(LogTemp, Log, TEXT("[GameInstance::AddItem] Added new item %s. Qty: %d"), *ItemId.ToString(), Qty);
+	}
+
+	return true;
+}
+
+bool UDigitalBleedGameInstance::RemoveItem(FName ItemId, int32 Qty)
+{
+	if (Qty <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameInstance::RemoveItem] Invalid quantity: %d"), Qty);
+		return false;
+	}
+
+	// 아이템 검색
+	FRowItemRecord* ExistingItem = ItemRecords.FindByPredicate([ItemId](const FRowItemRecord& Item)
+	{
+		return Item.ItemId == ItemId;
+	});
+
+	if (!ExistingItem)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameInstance::RemoveItem] Item %s not found"), *ItemId.ToString());
+		return false;
+	}
+
+	if (ExistingItem->Qty < Qty)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameInstance::RemoveItem] Insufficient quantity. Has: %d, Requested: %d"), 
+			ExistingItem->Qty, Qty);
+		return false;
+	}
+
+	ExistingItem->Qty -= Qty;
+	UE_LOG(LogTemp, Log, TEXT("[GameInstance::RemoveItem] Removed %d of item %s. Remaining: %d"), 
+		Qty, *ItemId.ToString(), ExistingItem->Qty);
+
+	// 수량이 0이 되면 목록에서 제거
+	if (ExistingItem->Qty <= 0)
+	{
+		ItemRecords.RemoveAll([ItemId](const FRowItemRecord& Item)
+		{
+			return Item.ItemId == ItemId;
+		});
+		UE_LOG(LogTemp, Log, TEXT("[GameInstance::RemoveItem] Item %s completely removed from inventory"), *ItemId.ToString());
+	}
+
+	return true;
+}
+
+int32 UDigitalBleedGameInstance::GetItemQuantity(FName ItemId) const
+{
+	const FRowItemRecord* ExistingItem = ItemRecords.FindByPredicate([ItemId](const FRowItemRecord& Item)
+	{
+		return Item.ItemId == ItemId;
+	});
+
+	return ExistingItem ? ExistingItem->Qty : 0;
+}
+
+bool UDigitalBleedGameInstance::HasItem(FName ItemId, int32 MinQty) const
+{
+	return GetItemQuantity(ItemId) >= MinQty;
+}

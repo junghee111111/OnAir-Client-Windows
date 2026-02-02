@@ -350,4 +350,17 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void AddMoneyBtc(float Delta);
+
+	// Item Management
+	UFUNCTION(BlueprintCallable)
+	bool AddItem(FName ItemId, int32 Qty = 1);
+
+	UFUNCTION(BlueprintCallable)
+	bool RemoveItem(FName ItemId, int32 Qty = 1);
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetItemQuantity(FName ItemId) const;
+
+	UFUNCTION(BlueprintCallable)
+	bool HasItem(FName ItemId, int32 MinQty = 1) const;
 };
