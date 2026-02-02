@@ -15,6 +15,8 @@ class DIGITALBLEED_API ULifeStatComponent : public UActorComponent
 protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	int32 Level = 1;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	int32 Exp = 0;
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	int32 Str = 10; //공격
@@ -66,6 +68,9 @@ public:
 	int32 GetHp() const { return this->Hp; }
 
 	UFUNCTION(BlueprintCallable)
+	int32 GetHpMax() const { return this->HpMax; }
+
+	UFUNCTION(BlueprintCallable)
 	int32 GetStr() const { return this->Str; }
 
 	UFUNCTION(BlueprintCallable)
@@ -76,6 +81,18 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	int32 GetLevel() const { return this->Level; }
+
+	int32 GetElementalFire() const { return this->ElementalFire; }
+
+	int32 GetElementalIce() const { return this->ElementalIce; }
+
+	int32 GetElementalThunder() const { return this->ElementalThunder; }
+
+	int32 GetElementalWind() const { return this->ElementalWind; }
+
+	int32 GetElementalHoly() const { return this->ElementalHoly; }
+
+	int32 GetElementalDarkness() const { return this->ElementalDarkness; }
 
 	UFUNCTION(BlueprintCallable)
 	void ManipulateHp(int32 Delta);
@@ -89,11 +106,13 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ManipulatePotassium(float Delta);
 	
-
 	UFUNCTION(BlueprintCallable)
 	void GiveDamage(int32 Damage);
 	
 	void DecreaseIons();
+
+	UFUNCTION(BlueprintCallable)
+	void IncreaseExp(int32 delta);
 
 protected:
 	// Called when the game starts

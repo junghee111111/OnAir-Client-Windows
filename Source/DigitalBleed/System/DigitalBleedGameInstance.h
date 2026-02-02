@@ -107,6 +107,9 @@ protected:
 	UDataTable* DT_PartyMembers = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
+	UDataTable* DT_ExpTable = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
 	UStringTable* ST_UI = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
@@ -126,6 +129,12 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "UserData")
 	TArray<FRowItemRecord> ItemRecords;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Money_Won = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	float Money_Btc = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Level Streaming")
 	FName LevelToStream = NAME_None;
@@ -153,6 +162,7 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 Hour = 0;
+
 
 	UPROPERTY()
 	TObjectPtr<AMyPlayerState> SavedPlayerState;
@@ -330,4 +340,14 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void ShowToastItemName(FText RowKey);
+
+	// 레벨에 필요한 경험치 조회
+	UFUNCTION(BlueprintCallable)
+	int32 GetMaxExpForLevel(int32 Level);
+
+	UFUNCTION(BlueprintCallable)
+	void AddMoneyWon(int32 Delta);
+
+	UFUNCTION(BlueprintCallable)
+	void AddMoneyBtc(float Delta);
 };

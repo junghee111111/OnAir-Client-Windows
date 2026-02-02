@@ -4,11 +4,12 @@
 #include "Life.h"
 
 #include "LifeHuman.h"
+#include "NiagaraFunctionLibrary.h"
 #include "./Component/LifeEquipComponent.h"
 #include "./Component/LifeStatComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "NiagaraComponent.h"
 #include "Variant_DigitalBleedBattle/BattleGameMode.h"
-
 
 // Sets default values
 ALife::ALife()
@@ -33,6 +34,8 @@ ALife::ALife()
 void ALife::BeginPlay()
 {
 	Super::BeginPlay();
+	this->MyGameMode = Cast<ABattleGameMode>(GetWorld()->GetAuthGameMode());
+	
 	USkeletalMeshComponent* MeshComp = GetMesh();
 	if (IsValid(MeshComp) && MeshComp->GetAnimInstance())
 	{
@@ -43,7 +46,7 @@ void ALife::BeginPlay()
 	}
 	
 	ALifeHuman* CanIHuman = Cast<ALifeHuman>(this);
-	if (IsValid(CanIHuman))
+	if (CanIHuman != nullptr)
 	{
 		// See FVector(0,0,0)
 		FTimerHandle TimerHandle;
@@ -83,6 +86,7 @@ void ALife::OnSkillMontageEnded(UAnimMontage* AnimMontage, bool bArg)
 
 void ALife::ExecSkillMontages()
 {
+	UE_LOG(LogTemp, Warning, TEXT("ExecSkillMontages"));
 	int32 HitCount = FMath::RandRange(this->CurrentSkill.MinHitCount, this->CurrentSkill.MaxHitCount);
 	switch (this->CurrentSkill.Elemental)
 	{
@@ -107,7 +111,93 @@ void ALife::ExecSkillMontages()
 			this->AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, this->MontagePhysAttack3);
 		}
 		break;
+	default:
+		this->MyGameMode->CameraSee_SkillTarget_Angle4();
+		if (IsValid(this->CurrentSkill.PreEffect))
+		{
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				GetWorld(),
+				this->CurrentSkill.PreEffect,
+				this->GetActorLocation(),
+				this->GetActorRotation(),
+				FVector(1.0f),
+				true
+			);
+		}
+		if (IsValid(this->CurrentSkill.ProjectileEffect))
+		{
+			UNiagaraComponent* Projectile = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				GetWorld(),
+				this->CurrentSkill.ProjectileEffect,
+				this->GetActorLocation(),
+				this->GetActorRotation(),
+				FVector(1.0f),
+				false
+			);
+			ALife* Target = this->MyGameMode->GetSkillTarget();
+			// throw Projectile to Target
+
+			if (Projectile && IsValid(Target))
+			{
+				FVector StartLocation = this->GetActorLocation();
+				FVector EndLocation = Target->GetActorLocation();
+				float Duration = 0.5f;
+				float ElapsedTime = 0.0f;
+	
+				FTimerHandle ProjectileTimerHandle;
+				GetWorldTimerManager().SetTimer(ProjectileTimerHandle, [this, Projectile, StartLocation, EndLocation, Duration, ElapsedTime, ProjectileTimerHandle]() mutable
+				{
+					ElapsedTime += GetWorld()->GetDeltaSeconds();
+					float Alpha = FMath::Clamp(ElapsedTime / Duration, 0.0f, 1.0f);
+
+					if (Projectile->IsValidLowLevel())
+					{
+						FVector NewLocation = FMath::Lerp(StartLocation, EndLocation, Alpha);
+						Projectile->SetWorldLocation(NewLocation);
+			
+						// 목표 방향으로 회전
+						FRotator NewRotation = (EndLocation - NewLocation).Rotation();
+						Projectile->SetWorldRotation(NewRotation);
+					}
+					
 		
+					// 1초가 지나면 타이머 정지 및 Projectile 제거
+					if (Alpha >= 1.0f || !Projectile->IsValidLowLevel())
+					{
+						GetWorldTimerManager().ClearTimer(ProjectileTimerHandle);
+						if (Projectile->IsValidLowLevel())
+						{
+							Projectile->DestroyComponent();
+						}
+					}
+				}, GetWorld()->GetDeltaSeconds(), true);
+			}
+		}
+
+		FTimerHandle TimerHandle;
+		GetWorldTimerManager().SetTimer(TimerHandle, [this]()
+		{
+			if (IsValid(this->CurrentSkill.HitEffect))
+			{
+				UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+					GetWorld(),
+					this->CurrentSkill.HitEffect,
+					this->MyGameMode->GetSkillTarget()->GetActorLocation(),
+					this->GetActorRotation(),
+					FVector(0.5f),
+					true
+				);
+			}
+			this->MyGameMode->ApplyDamage();
+		},0.5f, false);
+
+		FTimerHandle TimerHandle2;
+		GetWorldTimerManager().SetTimer(TimerHandle2, [this]()
+		{
+			this->MyGameMode->EndSkill();
+		},2.5f, false);
+		
+		break;
 	}
 	
 }
@@ -116,9 +206,6 @@ void ALife::ExecSkillMontages()
 void ALife::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	ABattleGameMode* GM = Cast<ABattleGameMode>(GetWorld()->GetAuthGameMode());
-	ALifeEnemy* CanIBeEnemy = Cast<ALifeEnemy>(this);
 
 	// 타겟 위치로 이동 중
 	if (bIsMovingToTarget)
@@ -156,25 +243,13 @@ void ALife::Tick(float DeltaTime)
 			FVector NewLocation = FMath::VInterpConstantTo(CurrentLocation, TargetLocation, DeltaTime, 600.0f);
 			SetActorLocation(NewLocation);
 		}
-	} else
-	{
-		
 	}
 }
 
 void ALife::ExecSkill(ALife* TargetLife, FRowSkill Skill, FRowSkillRecord SkillRecord)
 {
 	if (!IsValid(TargetLife)) return;
-
-	this->bReadyForExecuteSkill = false;
-	// 원래 위치 저장
-	this->OriginalLocation = GetActorLocation();
 	
-	// 타겟 위치 설정 (타겟 앞쪽으로 약간 떨어진 위치)
-	FVector Direction = (TargetLife->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-	this->TargetLocation = TargetLife->GetActorLocation() - Direction * 100.0f;
-	
-	this->bIsMovingToTarget = true;
 	this->CurrentSkill = Skill;
 	this->CurrentSkillRecord = SkillRecord;
 
@@ -182,9 +257,39 @@ void ALife::ExecSkill(ALife* TargetLife, FRowSkill Skill, FRowSkillRecord SkillR
 	FRotator LookAtRotation = (TargetLife->GetActorLocation() - GetActorLocation()).Rotation();
 	SetActorRotation(FRotator(0, LookAtRotation.Yaw, 0));
 
-	if (IsValid(this->MontageRun) && IsValid(this->AnimInstance))
+	this->LifeStatComponent->ManipulateHp(Skill.CostHP*-1);
+	this->LifeStatComponent->ManipulateHb(Skill.CostHb*-1);
+	this->LifeStatComponent->ManipulateSodium(Skill.CostNa*-1);
+	this->LifeStatComponent->ManipulatePotassium(Skill.CostK*-1);
+	
+	if (Skill.Elemental == 0) // 물리 스킬
 	{
-		this->AnimInstance->Montage_Play(this->MontageRun,1.0f);
+		this->bReadyForExecuteSkill = false;
+		this->bIsMovingToTarget = true;
+		// 원래 위치 저장
+		this->OriginalLocation = GetActorLocation();
+	
+		// 타겟 위치 설정 (타겟 앞쪽으로 약간 떨어진 위치)
+		FVector Direction = (TargetLife->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+		this->TargetLocation = TargetLife->GetActorLocation() - Direction * 100.0f;
+		
+		if (IsValid(this->MontageRun) && IsValid(this->AnimInstance))
+		{
+			this->AnimInstance->Montage_Play(this->MontageRun,1.0f);
+		}
+	} else // 마법계 스킬 시전
+	{
+		if (IsValid(this->MontageRun) && IsValid(this->AnimInstance))
+		{
+			float MontageLength = this->AnimInstance->Montage_Play(
+				this->MontageSuicide,1.0f, EMontagePlayReturnType::MontageLength,
+				0.0f, true);
+			FTimerHandle Th;
+			GetWorldTimerManager().SetTimer(Th, [this]()
+			{
+				this->ExecSkillMontages();
+			},MontageLength, false);
+		}
 	}
 }
 
@@ -227,3 +332,17 @@ void ALife::HideHpBar()
 		HpBarWidgetComponent->SetVisibility(false);
 	}
 }
+
+void ALife::MakeDown()
+{
+	this->AnimInstance->Montage_Play(this->MontageDown,1.0f);
+	this->bIsDown = true;
+}
+
+void ALife::RestoreDown()
+{
+	this->AnimInstance->Montage_Stop(0.5f, this->MontageDown);
+	this->bIsDown = false;
+}
+
+

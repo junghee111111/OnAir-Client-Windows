@@ -38,12 +38,16 @@ void ABattleMainCam::SeePlayerBack(const FVector PlayerPos)
 	bIsMovingToTarget = true;
 }
 
+/**
+ * 플레이어 얼굴을 줌인 한 카메라 앵글이다.
+ * @param PlayerPos 
+ */
 void ABattleMainCam::SeePlayerCenterToMargin(const FVector PlayerPos)
 {
-	this->TargetArmLength = 150.0f;
-	TargetLocation = PlayerPos;
+	this->TargetArmLength = 180.0f;
+	TargetLocation = PlayerPos + FVector(0,0,50);
 
-	FRotator Rot = UKismetMathLibrary::FindLookAtRotation(FVector(0,0,100),PlayerPos);
+	FRotator Rot = UKismetMathLibrary::FindLookAtRotation(FVector(0,0,-50),PlayerPos);
 	TargetRotation = Rot;
 
 	bIsMovingToTarget = true;

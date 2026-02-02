@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Life.h"
+#include "Data/StructItem.h"
 #include "LifeEnemy.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStartTurn);
@@ -26,6 +27,7 @@ protected:
 
 	UPROPERTY(BlueprintReadWrite, Category="DGHS|Battle")
 	FName EnemyId;
+	
 
 public:
 	// Called every frame

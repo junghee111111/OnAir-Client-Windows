@@ -12,6 +12,8 @@
 #include "UI/Battle/Widget3DLifeHealthBar.h"
 #include "Life.generated.h"
 
+class ABattleGameMode;
+
 UCLASS(abstract)
 class DIGITALBLEED_API ALife : public ACharacter
 {
@@ -57,6 +59,15 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Battle Animations")
 	UAnimMontage* MontageDead;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Battle Animations")
+	UAnimMontage* MontageSuicide;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Battle Animations")
+	UAnimMontage* MontageDown;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Battle Animations")
+	UAnimMontage* MontageWin;
+
 	UPROPERTY()
 	UAnimInstance* AnimInstance = nullptr;
 
@@ -74,6 +85,9 @@ protected:
 
 	UPROPERTY(BlueprintReadWrite)
 	bool bIsDefend = false;
+
+	UPROPERTY(BlueprintReadWrite)
+	bool bIsDown = false;
 	
 	UPROPERTY()
 	FVector TargetLocation;
@@ -89,6 +103,9 @@ protected:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Skills")
 	TArray<FRowSkillRecord> SkillRecords;
+
+	UPROPERTY()
+	ABattleGameMode* MyGameMode = nullptr;
 	
 
 public:
@@ -117,7 +134,19 @@ public:
 	void HideHpBar();
 
 	UFUNCTION(BlueprintCallable)
+	void MakeDown();
+
+	UFUNCTION(BlueprintCallable)
+	void RestoreDown();
+
+	UFUNCTION()
+	bool GetIsDown() const { return this->bIsDown; };
+
+	UFUNCTION(BlueprintCallable)
 	bool GetIsDefend() const { return bIsDefend; }
+
+	UFUNCTION(BlueprintCallable)
+	UAnimMontage* GetMontageWin() const { return MontageWin; }
 
 	void SetTmpCode(FString NewCode) { TempCode = NewCode; }
 

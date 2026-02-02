@@ -14,6 +14,7 @@
 #include "Runtime/LevelSequence/Public/LevelSequenceDirector.h"
 #include "Runtime/LevelSequence/Public/LevelSequencePlayer.h"
 #include "MovieSceneSequencePlayer.h" 
+#include "Data/StructExpTable.h"
 #include "UI/WidgetToast.h"
 
 constexpr int32 Z_INDEX_LOADING_SCREEN_FAKER = 100;
@@ -44,7 +45,7 @@ void UDigitalBleedGameInstance::Init()
 	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UDigitalBleedGameInstance::BeginLoadingScreen);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UDigitalBleedGameInstance::EndLoadingScreen);
 
-	PartyIn = {"SMR","HYJ", "JAR", "CJY"};
+	PartyIn = {"SMR","HYJ","CJY","JAR"};
 	PartyOut = {"PMS", "YJS", "KSY"};
 }
 
@@ -834,4 +835,36 @@ void UDigitalBleedGameInstance::ShowToastItemName(FText RowKey)
 		if (!WbpGlobalToast->IsInViewport()) WbpGlobalToast->AddToViewport(Z_INDEX_GLOBAL_TOAST);
 		WbpGlobalToast->Show(this->GetItemString(RowKey));
 	}
+}
+
+int32 UDigitalBleedGameInstance::GetMaxExpForLevel(int32 Level)
+{
+	if (!this->DT_ExpTable)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[UDigitalBleedGameInstance::GetMaxExpForLevel] this->DT_ExpTable is not set!"));
+		return 0;
+	}
+
+	FString RowName = FString::FromInt(Level);
+	FRowExperience* ExpRow = this->DT_ExpTable->FindRow<FRowExperience>(FName(*RowName), TEXT("GetRequiredExpForLevel"));
+    
+	if (ExpRow)
+	{
+		return ExpRow->MaxExp;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[UDigitalBleedGameInstance::GetMaxExpForLevel] Level %d not found in Experience Table"), Level);
+	return 99999;
+}
+
+void UDigitalBleedGameInstance::AddMoneyWon(int32 Delta)
+{
+	this->Money_Won += Delta;
+	if (this->Money_Won < 0) this->Money_Won = 0;
+}
+
+void UDigitalBleedGameInstance::AddMoneyBtc(float Delta)
+{
+	this->Money_Btc += Delta;
+	if (this->Money_Btc < 0) this->Money_Btc = 0;
 }

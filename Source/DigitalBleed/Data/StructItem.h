@@ -52,7 +52,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Target = 0;
 
-	// 1 : Equip 2 : Consume 3 : Etc.
+	// 1 : Consume 2 : Equip 3 : Etc.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Type;
 	

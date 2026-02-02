@@ -39,6 +39,18 @@ public:
 	int32 MaxHitCount;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 CostHP;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float CostHb;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float CostNa;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float CostK;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Point;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -52,6 +64,15 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	UNiagaraSystem* HitEffect;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	USoundBase* PreSFX;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	USoundBase* ProjectileSFX;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	USoundBase* HitSFX;
 	
 };
 

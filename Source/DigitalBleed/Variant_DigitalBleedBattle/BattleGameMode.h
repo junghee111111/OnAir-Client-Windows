@@ -43,7 +43,36 @@ protected:
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Sound")
 	USoundBase* SFX_ItemUse = nullptr;
 
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Player Classes")
+	TSubclassOf<ALifeHuman> Player_HYJClass = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Player Classes")
+	TSubclassOf<ALifeHuman> Player_CJYClass = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Player Classes")
+	TSubclassOf<ALifeHuman> Player_JARClass = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Player Classes")
+	TSubclassOf<ALifeHuman> Player_PMSClass = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Player Classes")
+	TSubclassOf<ALifeHuman> Player_YJSClass = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Player Classes")
+	TSubclassOf<ALifeHuman> Player_Class = nullptr;
+
 	void SpawnPlayers();
+	
+	// ========== Battle Rewards ==========
+	UPROPERTY(BlueprintReadOnly)
+	float Reward_Btc = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Reward_Exp = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FRowItem> Reward_Items = {};
+	// ========== Battle Rewards ==========
 
 	UPROPERTY(BlueprintReadOnly, Category = "Battle")
 	int32 CurrentPlayerIndex;
@@ -71,6 +100,12 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsItemPlaying = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bEndGame = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsCurrentTurnOneMore = false;
 
 	UPROPERTY(BlueprintReadOnly)
 	FString CurrentTurnTarget = "";
@@ -146,15 +181,6 @@ protected:
 	void CameraSeeTurnOwner();
 
 	UFUNCTION(BlueprintCallable)
-	void CameraSee_SkillTarget_Angle1();
-
-	UFUNCTION(BlueprintCallable)
-	void CameraSee_SkillTarget_Angle2();
-
-	UFUNCTION(BlueprintCallable)
-	void CameraSee_SkillTarget_Angle3();
-
-	UFUNCTION(BlueprintCallable)
 	void StartSelectEnemyMode();
 
 	UFUNCTION(BlueprintCallable)
@@ -189,9 +215,6 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void ExecuteSkill();
 
-	UFUNCTION(BlueprintCallable)
-	void EndSkill();
-
 	UPROPERTY(BlueprintReadWrite)
 	FRowSkill CurrentSkill;
 
@@ -205,6 +228,9 @@ protected:
 	FRowItemRecord CurrentItemRecord;
 
 	void DeleteFromOrderedList(FString TmpCode);
+	
+	void ApplyRewards();
+	
 	void EndGame();
 
 public:
@@ -240,9 +266,29 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ApplyDamage();
-	
 
 	UFUNCTION(BlueprintCallable)
+	void CameraSee_SkillTarget_Angle1();
+
+	UFUNCTION(BlueprintCallable)
+	void CameraSee_SkillTarget_Angle2();
+
+	UFUNCTION(BlueprintCallable)
+	void CameraSee_SkillTarget_Angle3();
+
+	UFUNCTION(BlueprintCallable)
+	void CameraSee_SkillTarget_Angle4();
+
+	UFUNCTION()
+	ALife* GetSkillTarget() const { return this->CurrentSkillTarget; }
+
+	UFUNCTION(BlueprintCallable)
+	void EndSkill();
+	
+	UFUNCTION(BlueprintCallable)
 	bool GetEnemySelectMode() const { return bEnemySelectMode; };
+
+	UFUNCTION(BlueprintCallable)
+	UWholeBattleUI* GetWholeBattleUI() const { return WholeBattleUI_Instance; }
 	
 };
