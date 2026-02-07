@@ -148,6 +148,12 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Level Streaming")
 	bool bIsStreaming;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Level Streaming")
+	bool bIsOpeningMap;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bNeedsRestoreMatrix = false;
+
 	UPROPERTY(BlueprintReadOnly)
 	int32 Month = 3;
 
@@ -363,4 +369,13 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	bool HasItem(FName ItemId, int32 MinQty = 1) const;
+
+	UFUNCTION(BlueprintCallable)
+	float GetMoneyBtc() const { return Money_Btc; }
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetMoneyWon() const { return Money_Won; }
+
+	UFUNCTION(BlueprintCallable)
+	void SetNeedsRestoreMatrix(bool newBool);
 };

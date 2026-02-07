@@ -97,6 +97,10 @@ void UDigitalBleedGameInstance::BeginLoadingScreen(const FString& MapName)
 void UDigitalBleedGameInstance::EndLoadingScreen(UWorld* InLoadedWorld)
 {
 	UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Loading screen ended."));
+
+	// OpenLevel 완료 후 플래그 리셋
+	this->bIsOpeningMap = false;
+	
 	if (InLoadedWorld)
 	{
 		FTimerHandle TimerHandle;
@@ -253,6 +257,7 @@ void UDigitalBleedGameInstance::InitGamePlayerLoggedIn()
 
 void UDigitalBleedGameInstance::JustOpenMap(FName MapName)
 {
+	this->bIsOpeningMap = true;
 	this->FakeLoadingScreenInit();
 	this->WbpLoadingScreenFaker->Show();
 	FTimerHandle TimerHandle;
@@ -959,4 +964,9 @@ int32 UDigitalBleedGameInstance::GetItemQuantity(FName ItemId) const
 bool UDigitalBleedGameInstance::HasItem(FName ItemId, int32 MinQty) const
 {
 	return GetItemQuantity(ItemId) >= MinQty;
+}
+
+void UDigitalBleedGameInstance::SetNeedsRestoreMatrix(bool newBool)
+{
+	this->bNeedsRestoreMatrix = newBool;
 }

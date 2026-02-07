@@ -1066,7 +1066,7 @@ void ABattleGameMode::ApplyRewards()
 	// 리워드 경험치 계산
 	for (ALifeEnemy* Enemy : Enemies)
 	{
-		this->Reward_Exp += Enemy->LifeStatComponent->GetHpMax() / 3;
+		if (IsValid(Enemy)) this->Reward_Exp += Enemy->LifeStatComponent->GetHpMax() / 3;
 	}
 	// 리워드 경험치 어플라이
 	for (ALifeHuman* Member : PartyMembers)

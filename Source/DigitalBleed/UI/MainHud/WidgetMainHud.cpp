@@ -26,8 +26,8 @@ void UWidgetMainHud::PlayHideAnim()
 void UWidgetMainHud::UpdateHud()
 {
 	UDigitalBleedGameInstance* GI = GetGameInstance<class UDigitalBleedGameInstance>();
-	this->Text_BTC->SetText(FText::FromString(FString::SanitizeFloat(GI->GetSavedPlayerState()->GetMoneyBTC())));
-	this->Text_Won->SetText(FText::FromString(FString::FromInt(GI->GetSavedPlayerState()->GetMoneyWon())));
+	this->Text_BTC->SetText(FText::FromString(FString::SanitizeFloat(GI->GetMoneyBtc())));
+	this->Text_Won->SetText(FText::FromString(FString::FromInt(GI->GetMoneyWon())));
 	
 	this->Text_Cycle->SetText(FText::FromString(GI->GetCycleText(GI->GetHour())));
 	this->Text_Date->SetText(GI->GetTodayText());

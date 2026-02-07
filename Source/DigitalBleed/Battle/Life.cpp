@@ -142,15 +142,16 @@ void ALife::ExecSkillMontages()
 				FVector StartLocation = this->GetActorLocation();
 				FVector EndLocation = Target->GetActorLocation();
 				float Duration = 0.5f;
-				float ElapsedTime = 0.0f;
-	
-				FTimerHandle ProjectileTimerHandle;
-				GetWorldTimerManager().SetTimer(ProjectileTimerHandle, [this, Projectile, StartLocation, EndLocation, Duration, ElapsedTime, ProjectileTimerHandle]() mutable
-				{
-					ElapsedTime += GetWorld()->GetDeltaSeconds();
-					float Alpha = FMath::Clamp(ElapsedTime / Duration, 0.0f, 1.0f);
+				
+				TSharedPtr<FTimerHandle> ProjectileTimerHandle = MakeShared<FTimerHandle>();
+				TSharedPtr<float> ElapsedTime = MakeShared<float>(0.0f);
 
-					if (Projectile->IsValidLowLevel())
+				GetWorldTimerManager().SetTimer(*ProjectileTimerHandle, [this, Projectile, StartLocation, EndLocation, Duration, ElapsedTime, ProjectileTimerHandle]() mutable
+				{
+					*ElapsedTime += GetWorld()->GetDeltaSeconds();
+					float Alpha = FMath::Clamp(*ElapsedTime / Duration, 0.0f, 1.0f);
+
+					if (Projectile->IsValidLowLevel() && Projectile->IsRegistered())
 					{
 						FVector NewLocation = FMath::Lerp(StartLocation, EndLocation, Alpha);
 						Projectile->SetWorldLocation(NewLocation);
@@ -164,10 +165,12 @@ void ALife::ExecSkillMontages()
 					// 1초가 지나면 타이머 정지 및 Projectile 제거
 					if (Alpha >= 1.0f || !Projectile->IsValidLowLevel())
 					{
-						GetWorldTimerManager().ClearTimer(ProjectileTimerHandle);
+						UE_LOG(LogTemp, Warning, TEXT("Projectile Timer Ended"));
+						GetWorldTimerManager().ClearTimer(*ProjectileTimerHandle);
 						if (Projectile->IsValidLowLevel())
 						{
 							Projectile->DestroyComponent();
+							Projectile = nullptr;
 						}
 					}
 				}, GetWorld()->GetDeltaSeconds(), true);
