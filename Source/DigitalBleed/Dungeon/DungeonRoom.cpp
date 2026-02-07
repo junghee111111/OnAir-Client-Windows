@@ -15,25 +15,25 @@ ADungeonRoom::ADungeonRoom()
 	RootComponent = DefaultSceneRoot;
 
 	// Create and attach Wall Meshes
-	WallFrontMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WallFrontMesh"));
-	WallFrontMesh->SetupAttachment(DefaultSceneRoot);
-	WallFrontMesh->SetRelativeLocation(FVector(0.0f, -500.0f, 0.0f)); // 앞쪽 벽
-	WallFrontMesh->SetRelativeRotation(FRotator(90.0f, 90.0f, 0.0f));
-
-	WallBackMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WallBackMesh"));
-	WallBackMesh->SetupAttachment(DefaultSceneRoot);
-	WallBackMesh->SetRelativeLocation(FVector(0.0f, 500.0f, 0.0f)); // 뒤쪽 벽
-	WallBackMesh->SetRelativeRotation(FRotator(90.0f, 90.0f, 0.0f));
-
 	WallLeftMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WallLeftMesh"));
 	WallLeftMesh->SetupAttachment(DefaultSceneRoot);
-	WallLeftMesh->SetRelativeLocation(FVector(-050.0f, 0.0f, 0.0f)); // 왼쪽 벽
-	WallLeftMesh->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));
+	WallLeftMesh->SetRelativeLocation(FVector(0.0f, -250.0f, 250.0f)); // 왼쪽 벽
+	WallLeftMesh->SetRelativeRotation(FRotator(90.0f, 90.0f, 0.0f));
 
 	WallRightMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WallRightMesh"));
 	WallRightMesh->SetupAttachment(DefaultSceneRoot);
-	WallRightMesh->SetRelativeLocation(FVector(500.0f, 0.0f, 0.0f)); // 오른쪽 벽
-	WallRightMesh->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));
+	WallRightMesh->SetRelativeLocation(FVector(0.0f, 250.0f, 250.0f)); // 오른쪽 벽
+	WallRightMesh->SetRelativeRotation(FRotator(90.0f, 90.0f, 0.0f));
+
+	WallBackMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WallBackMesh"));
+	WallBackMesh->SetupAttachment(DefaultSceneRoot);
+	WallBackMesh->SetRelativeLocation(FVector(-250.0f, 0.0f, 250.0f)); // 뒤쪽 벽
+	WallBackMesh->SetRelativeRotation(FRotator(0.0f, 90.0f, 90.0f));
+
+	WallFrontMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WallFrontMesh"));
+	WallFrontMesh->SetupAttachment(DefaultSceneRoot);
+	WallFrontMesh->SetRelativeLocation(FVector(250.0f, 0.0f, 250.0f)); // 앞쪽 벽
+	WallFrontMesh->SetRelativeRotation(FRotator(0.0f, 90.0f, 90.0f));
 
 	WallFloorMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Floor"));
 	WallFloorMesh->SetupAttachment(DefaultSceneRoot);
@@ -48,6 +48,15 @@ ADungeonRoom::ADungeonRoom()
 void ADungeonRoom::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// this->WallLeftMesh->SetVisibility(false);
+	// this->WallLeftMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	// this->WallFrontMesh->SetVisibility(false);
+	// this->WallFrontMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	// this->WallRightMesh->SetVisibility(false);
+	// this->WallRightMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	// this->WallBackMesh->SetVisibility(false);
+	// this->WallBackMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	
 }
 
@@ -55,5 +64,53 @@ void ADungeonRoom::BeginPlay()
 void ADungeonRoom::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+}
+
+void ADungeonRoom::SetDirection()
+{
+	UE_LOG(LogTemp, Log, TEXT("%d : %d => %d"), this->MapType, this->PrevDirection, this->Direction)
+	
+	switch (this->Direction)
+	{
+	case 0://up
+		this->WallLeftMesh->SetVisibility(false);
+		this->WallLeftMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		break;
+	case 1://right
+		this->WallFrontMesh->SetVisibility(false);
+		this->WallFrontMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		break;
+	case 2://down
+		this->WallRightMesh->SetVisibility(false);
+		this->WallRightMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		break;
+	case 3://left
+		this->WallBackMesh->SetVisibility(false);
+		this->WallBackMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		break;
+	}
+	
+	if (this->MapType!=2) //맨 처음 방이 아니면 적어도 두 벽이 뚫려있어야함.
+	{
+		switch (this->PrevDirection)
+		{
+		case 0://up
+			this->WallRightMesh->SetVisibility(false);
+			this->WallRightMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			break;
+		case 1://right
+			this->WallBackMesh->SetVisibility(false);
+			this->WallBackMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			break;
+		case 2://down
+			this->WallLeftMesh->SetVisibility(false);
+			this->WallLeftMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			break;
+		case 3://left
+			this->WallFrontMesh->SetVisibility(false);
+			this->WallFrontMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			break;
+		}
+	}
 }
 

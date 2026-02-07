@@ -43,4 +43,16 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	UPROPERTY()
+	int32 MapType = 0;
+
+	UPROPERTY()
+	int32 Direction = 0;
+
+	UPROPERTY()
+	int32 PrevDirection = 0;
+
+	UFUNCTION(BlueprintCallable)
+	void SetDirection();
 };

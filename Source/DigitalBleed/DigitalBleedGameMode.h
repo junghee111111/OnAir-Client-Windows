@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Dungeon/DungeonRoom.h"
 #include "GameFramework/GameModeBase.h"
 #include "DigitalBleedGameMode.generated.h"
 
@@ -16,12 +17,13 @@ class ADigitalBleedGameMode : public AGameModeBase
 
 private:
 	void GenerateBranches();
-	void GenerateCriticalPath(TArray<int32> LastPoint,int32 Length);
+	void GenerateCriticalPath(TArray<int32> PrevPoint, TArray<int32> LastPoint,int32 Length);
 	void GenerateBranchPath(TArray<int32> LastPoint,int32 Length);
 	void GenerateMap();
 	void PrintMapInfo();
+	void SpawnDungeonRoom(TArray<int32> PrevPoint, TArray<int32> LastPoint,TArray<int32> NextPoint);
 	
-	void SpawnMap();
+	void PostProcess();
 	TArray<int32> StartPoint = {0,0};
 	TArray<int32> CriticalPathLastPoint = {0,0};
 	int32 NumBranches = 0;
@@ -61,40 +63,40 @@ private:
 
 	TArray<TArray<int32>> DirectionData = {
 		{
-			0,0,0,0,0,0,0,0,0,0
+			-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 		},
 	{
-		0,0,0,0,0,0,0,0,0,0
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 	},
 	{
-		0,0,0,0,0,0,0,0,0,0
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 	},
 	{
-		0,0,0,0,0,0,0,0,0,0
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 	},
 	{
-		0,0,0,0,0,0,0,0,0,0
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 	},
 	{
-		0,0,0,0,0,0,0,0,0,0
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 	},
 	{
-		0,0,0,0,0,0,0,0,0,0
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 	},
 	{
-		0,0,0,0,0,0,0,0,0,0
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 	},
 	{
-		0,0,0,0,0,0,0,0,0,0
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 	},
 	{
-		0,0,0,0,0,0,0,0,0,0
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 	},
 };
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map Object")
-	TSubclassOf<AActor> MapWallNoneClass = nullptr;
+	TSubclassOf<ADungeonRoom> MapWallNoneClass = nullptr;
 
 public:
 	
@@ -103,6 +105,7 @@ public:
 
 	
 	virtual void BeginPlay() override;
+	virtual void PostLogin(APlayerController* NewPlayer) override;
 };
 
 

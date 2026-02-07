@@ -5,12 +5,13 @@
 #include "CborTypes.h"
 #include "HLSLTypeAliases.h"
 
-constexpr int32 MapWidth = 10;
-constexpr float TileSize = MapWidth*100.0;
-const FVector StartOffset = FVector(MapWidth * -450.0f, MapWidth * -450.0f, 0.0f);
-constexpr int32 CriticalPathLength = 20;
-constexpr int32 BranchesMaxNum = 3;
-constexpr int32 BranchLength = 4;
+constexpr int32 GDungeonMapWidth = 10;
+constexpr int32 GTileWidth = 5;
+constexpr float GTileSize = GTileWidth * 100.0;
+const FVector GMapRoomStartOffset = FVector(0.0f, 0.0f, 0.0f);
+constexpr int32 GCriticalPathLength = 20;
+constexpr int32 GBranchesMaxNum = 3;
+constexpr int32 GBranchLength = 4;
 
 ADigitalBleedGameMode::ADigitalBleedGameMode()
 {
@@ -20,20 +21,20 @@ ADigitalBleedGameMode::ADigitalBleedGameMode()
 void ADigitalBleedGameMode::PrintMapInfo()
 {
 	UE_LOG(LogTemp, Log, TEXT("MAP======================"));
-	for (int i = 0; i < MapWidth; i++)
+	for (int i = 0; i < GDungeonMapWidth; i++)
 	{
 		FString Data = "";
-		for (int j = 0; j < MapWidth; j++)
+		for (int j = 0; j < GDungeonMapWidth; j++)
 		{
 			Data += FString::FromInt(this->MapData[i][j]) + " ";
 		}
 		UE_LOG(LogTemp, Log, TEXT("%s"), *Data);
 	}
 	UE_LOG(LogTemp, Log, TEXT("DIR======================"));
-	for (int i = 0; i < MapWidth; i++)
+	for (int i = 0; i < GDungeonMapWidth; i++)
 	{
 		FString Data = "";
-		for (int j = 0; j < MapWidth; j++)
+		for (int j = 0; j < GDungeonMapWidth; j++)
 		{
 			Data += FString::FromInt(this->DirectionData[i][j]) + " ";
 		}
@@ -43,15 +44,55 @@ void ADigitalBleedGameMode::PrintMapInfo()
 
 void ADigitalBleedGameMode::GenerateBranches()
 {
-	for (int i = 0; i < MapWidth; i ++)
+	for (int i = 0; i < GDungeonMapWidth; i ++)
 	{
-		for (int j = 0; j < MapWidth; j++)
+		for (int j = 0; j < GDungeonMapWidth; j++)
 		{
 			if (this->MapData[i][j] == 4)
 			{
-				this->GenerateBranchPath({i,j}, FMath::RandRange(1, BranchLength));
+				this->GenerateBranchPath({i,j}, FMath::RandRange(1, GBranchLength));
 			}
 		}
+	}
+}
+
+/**
+ * 실제 Map Mesh를 Spawn 한다.
+ * @param LastPoint 이전 좌표
+ * @param NextPoint 현재 좌표
+ */
+void ADigitalBleedGameMode::SpawnDungeonRoom(TArray<int32> PrevPoint,TArray<int32> LastPoint, TArray<int32> NextPoint)
+{
+	FVector SpawnLocation = GMapRoomStartOffset + FVector(NextPoint[1] * GTileSize, NextPoint[0] * GTileSize, 0.0f);
+	FRotator SpawnRotation = FRotator::ZeroRotator;
+
+	
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	if (MapWallNoneClass) // 헤더에 TSubclassOf<AActor> MapWallNoneClass 선언 필요
+	{
+		FVector SpawnLocationFirstRoom = GMapRoomStartOffset + FVector(LastPoint[1] * GTileSize, LastPoint[0] * GTileSize, 0.0f);
+		
+		UE_LOG(LogTemp, Log, TEXT("[%d,%d] Spawned at %s"), LastPoint[0], LastPoint[1], *SpawnLocationFirstRoom.ToString());
+
+		ADungeonRoom* SpawnedWall = GetWorld()->SpawnActor<ADungeonRoom>(
+			MapWallNoneClass,
+			SpawnLocationFirstRoom,
+			SpawnRotation,
+			SpawnParams
+		);
+		SpawnedWall->Direction = this->DirectionData[LastPoint[0]][LastPoint[1]];
+		if (PrevPoint[0] >= 0)
+		{
+			SpawnedWall->PrevDirection = this->DirectionData[PrevPoint[0]][PrevPoint[1]];
+		} else
+		{
+			SpawnedWall->PrevDirection = -1;
+		}
+		SpawnedWall->MapType = this->MapData[LastPoint[0]][LastPoint[1]];
+		SpawnedWall->SetDirection();
+		UE_LOG(LogTemp, Log, TEXT("[%d,%d] Spawned at %s"), NextPoint[0], NextPoint[1], *SpawnLocation.ToString());
 	}
 }
 
@@ -60,7 +101,7 @@ void ADigitalBleedGameMode::GenerateBranches()
  * 이건 Recursive Function 이다. 그래서 함수가 스스로를 재귀호출 하고 있음.
  * @author Junghee Wang
  */
-void ADigitalBleedGameMode::GenerateCriticalPath(TArray<int32> LastPoint, int32 Length)
+void ADigitalBleedGameMode::GenerateCriticalPath(TArray<int32> PrevPoint, TArray<int32> LastPoint, int32 Length)
 {
 	if (Length <= 0) return;
 	// 시작점에서 진행할 방향을 정한다.
@@ -84,8 +125,8 @@ void ADigitalBleedGameMode::GenerateCriticalPath(TArray<int32> LastPoint, int32 
 		break;
 	}
 
-	if (NextPoint[0] >= 0 && NextPoint[0] < MapWidth &&
-		NextPoint[1] >= 0 && NextPoint[1] < MapWidth &&
+	if (NextPoint[0] >= 0 && NextPoint[0] < GDungeonMapWidth &&
+		NextPoint[1] >= 0 && NextPoint[1] < GDungeonMapWidth &&
 		this->MapData[NextPoint[0]][NextPoint[1]] == 0
 	)
 	{
@@ -94,7 +135,7 @@ void ADigitalBleedGameMode::GenerateCriticalPath(TArray<int32> LastPoint, int32 
 
 	if (!bIsOk)
 	{
-		this->GenerateCriticalPath(LastPoint, Length-1); //다시 호출하여 Direction 랜덤값을 다시 받아오길 희망
+		this->GenerateCriticalPath(PrevPoint, LastPoint, Length-1); //다시 호출하여 Direction 랜덤값을 다시 받아오길 희망
 		return;
 	}
 
@@ -104,61 +145,65 @@ void ADigitalBleedGameMode::GenerateCriticalPath(TArray<int32> LastPoint, int32 
 
 	if (Length > 1)
 	{
-		if (FMath::RandBool() == true && NumBranches < BranchesMaxNum)
+		if (FMath::RandBool() == true && NumBranches < GBranchesMaxNum)
 		{
 			// 브랜치 후보는 4로 표기한다!
 			this->MapData[NextPoint[0]][NextPoint[1]] = 4;
 		}
 	}
 
+	this->SpawnDungeonRoom(PrevPoint, LastPoint, NextPoint);
+
 	//Length-1 해서 재귀호출
-	this->GenerateCriticalPath(NextPoint, Length-1);
+	this->GenerateCriticalPath(LastPoint, NextPoint, Length-1);
 }
 
 void ADigitalBleedGameMode::GenerateBranchPath(TArray<int32> LastPoint, int32 Length)
 {
-	if (Length <= 0) return;
-	
-	int32 RandomDirection = FMath::RandRange(0, 3);
-	TArray<int32> NextPoint = LastPoint;
-	bool bIsOk = false;
-
-	switch (RandomDirection)
-	{
-	case 0: //UP
-		NextPoint[0] -= 1;
-		break;
-	case 1: // RIGHT
-		NextPoint[1] += 1;
-		break;
-	case 2: // DOWN
-		NextPoint[0] += 1;
-		break;
-	case 3: // LEFT
-		NextPoint[1] -= 1;
-		break;
-	}
-
-	if (NextPoint[0] >= 0 && NextPoint[0] < MapWidth &&
-		NextPoint[1] >= 0 && NextPoint[1] < MapWidth &&
-		this->MapData[NextPoint[0]][NextPoint[1]] == 0
-	)
-	{
-		bIsOk = true;
-	}
-
-	if (!bIsOk)
-	{
-		this->GenerateCriticalPath(LastPoint, Length-1); //다시 호출하여 Direction 랜덤값을 다시 받아오길 희망
-		return;
-	}
-
-	// 브랜치의 마지막은 6, 일반 브랜치 길은 5이다.
-	this->MapData[NextPoint[0]][NextPoint[1]] = Length==1 ? 6 : 5;
-	this->DirectionData[LastPoint[0]][LastPoint[1]] = RandomDirection;
-
-	//Length-1 해서 재귀호출
-	this->GenerateBranchPath(NextPoint, Length-1);
+	// if (Length <= 0) return;
+	//
+	// int32 RandomDirection = FMath::RandRange(0, 3);
+	// TArray<int32> NextPoint = LastPoint;
+	// bool bIsOk = false;
+	//
+	// switch (RandomDirection)
+	// {
+	// case 0: //UP
+	// 	NextPoint[0] -= 1;
+	// 	break;
+	// case 1: // RIGHT
+	// 	NextPoint[1] += 1;
+	// 	break;
+	// case 2: // DOWN
+	// 	NextPoint[0] += 1;
+	// 	break;
+	// case 3: // LEFT
+	// 	NextPoint[1] -= 1;
+	// 	break;
+	// }
+	//
+	// if (NextPoint[0] >= 0 && NextPoint[0] < GDungeonMapWidth &&
+	// 	NextPoint[1] >= 0 && NextPoint[1] < GDungeonMapWidth &&
+	// 	this->MapData[NextPoint[0]][NextPoint[1]] == 0
+	// )
+	// {
+	// 	bIsOk = true;
+	// }
+	//
+	// if (!bIsOk)
+	// {
+	// 	this->GenerateCriticalPath(LastPoint, Length-1); //다시 호출하여 Direction 랜덤값을 다시 받아오길 희망
+	// 	return;
+	// }
+	//
+	// // 브랜치의 마지막은 6, 일반 브랜치 길은 5이다.
+	// this->MapData[NextPoint[0]][NextPoint[1]] = Length==1 ? 6 : 5;
+	// this->DirectionData[LastPoint[0]][LastPoint[1]] = RandomDirection;
+	//
+	// this->SpawnDungeonRoom(LastPoint, NextPoint);
+	//
+	// //Length-1 해서 재귀호출
+	// this->GenerateBranchPath(NextPoint, Length-1);
 }
 
 /**
@@ -168,62 +213,40 @@ void ADigitalBleedGameMode::GenerateBranchPath(TArray<int32> LastPoint, int32 Le
 void ADigitalBleedGameMode::GenerateMap()
 {
 	// 시작점과 끝점을 정한다.
-	this->StartPoint = {FMath::RandRange(0, MapWidth - 1),FMath::RandRange(0, MapWidth - 1)};
+	this->StartPoint = {FMath::RandRange(0, GDungeonMapWidth - 1),FMath::RandRange(0, GDungeonMapWidth - 1)};
 	this->CriticalPathLastPoint = this->StartPoint;
 	this->MapData[this->StartPoint[0]][this->StartPoint[1]] = 2; // 시작점이면 2
 }
 
 /**
- * 생성된 2차원 배열 맵을 3D 공간에 스폰시킨다.
+ * 후처리 function.
  * @author Junghee Wang
  */
-void ADigitalBleedGameMode::SpawnMap()
+void ADigitalBleedGameMode::PostProcess()
 {
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	
+	UE_LOG(LogTemp, Log, TEXT("PostProcess"));
 	for (int i = 0; i < this->MapData.Num(); i++)
 	{
 		for (int j = 0; j < this->MapData[i].Num(); j++)
 		{
-			if (this->MapData[i][j] >= 1)
+			if (this->MapData[i][j] == 2) // 만약 값이 2이면 시작점이므로
 			{
 				// Spawn actor MapWallNone
-				FVector SpawnLocation = StartOffset + FVector(j * TileSize, i * TileSize, 0.0f);
+				FVector SpawnLocation = GMapRoomStartOffset + FVector(j * GTileSize, i * GTileSize, 100.0f);
 				FRotator SpawnRotation = FRotator::ZeroRotator;
-
-				if (this->MapData[i][j] == 2) // 만약 값이 2이면 시작점이므로
+				//spawn current player at SpawnLocation
+				APlayerController* PC = GetWorld()->GetFirstPlayerController();
+				if (IsValid(PC))
 				{
-					//spawn current player at SpawnLocation
-					APlayerController* PC = GetWorld()->GetFirstPlayerController();
-					if (IsValid(PC))
+					APawn* PlayerPawn = PC->GetPawn();
+					if (IsValid(PlayerPawn))
 					{
-						APawn* PlayerPawn = PC->GetPawn();
-						if (IsValid(PlayerPawn))
-						{
-							PlayerPawn->SetActorLocation(SpawnLocation + FVector(0.0f, 0.0f, 100.0f));
-							PlayerPawn->SetActorRotation(SpawnRotation);
-						}
-					}
-				}
-
-				if (MapWallNoneClass) // 헤더에 TSubclassOf<AActor> MapWallNoneClass 선언 필요
-				{
-					AActor* SpawnedWall = GetWorld()->SpawnActor<AActor>(
-						MapWallNoneClass,
-						SpawnLocation,
-						SpawnRotation,
-						SpawnParams
-					);
-
-					if (IsValid(SpawnedWall))
-					{
-						UE_LOG(LogTemp, Log, TEXT("Spawned wall at [%d,%d]: %s"), 
-						       i, j, *SpawnLocation.ToString());
+						UE_LOG(LogTemp, Log, TEXT("Player Spawned at %s"), *SpawnLocation.ToString());
+						PlayerPawn->SetActorLocation(SpawnLocation);
+						PlayerPawn->SetActorRotation(SpawnRotation);
 					}
 				}
 			}
-			
 		}
 	}
 }
@@ -232,8 +255,15 @@ void ADigitalBleedGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 	this->GenerateMap();
-	this->GenerateCriticalPath(this->CriticalPathLastPoint, CriticalPathLength);
+	this->GenerateCriticalPath({-1,-1},this->CriticalPathLastPoint, GCriticalPathLength);
 	this->GenerateBranches();
-	this->SpawnMap();
 	this->PrintMapInfo();
+
+	this->PostProcess();
+}
+
+void ADigitalBleedGameMode::PostLogin(APlayerController* NewPlayer)
+{
+	Super::PostLogin(NewPlayer);
+	
 }
