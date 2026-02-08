@@ -18,10 +18,93 @@ class ADigitalBleedGameMode : public AGameModeBase
 private:
 	void GenerateBranches();
 	void GenerateCriticalPath(TArray<int32> PrevPoint, TArray<int32> LastPoint,int32 Length);
-	void GenerateBranchPath(TArray<int32> LastPoint,int32 Length);
+	void GenerateBranchPath(TArray<int32> PrevPoint, TArray<int32> LastPoint, int32 Length);
 	void GenerateMap();
 	void PrintMapInfo();
 	void SpawnDungeonRoom(TArray<int32> PrevPoint, TArray<int32> LastPoint,TArray<int32> NextPoint);
+
+	TArray<TArray<ADungeonRoom*>> Rooms = {
+		{
+				nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+				nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+			},
+		{
+			nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+			nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+		},
+		{
+			nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+			nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+		},
+		{
+			nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+			nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+		},
+		{
+			nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+			nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+		},
+		{
+			nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+			nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+		},
+		{
+			nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+			nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+		},
+		{
+			nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+			nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+		},
+		{
+			nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+			nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+		},
+		{
+			nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+			nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+		},
+{
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+},
+{
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+},
+{
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+},
+{
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+},
+{
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+},
+{
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+},
+{
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+},
+{
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+},
+{
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+},
+{
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,
+	nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr
+},
+	};
 	
 	void PostProcess();
 	TArray<int32> StartPoint = {0,0};
@@ -30,68 +113,127 @@ private:
 
 	TArray<TArray<int32>> MapData = {
 	{
-			0,0,0,0,0,0,0,0,0,0
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 		},
 	{
-			0,0,0,0,0,0,0,0,0,0
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 		},
 		{
-			0,0,0,0,0,0,0,0,0,0
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 		},
 		{
-			0,0,0,0,0,0,0,0,0,0
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 		},
 		{
-			0,0,0,0,0,0,0,0,0,0
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 		},
 		{
-			0,0,0,0,0,0,0,0,0,0
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 		},
 		{
-			0,0,0,0,0,0,0,0,0,0
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 		},
 		{
-			0,0,0,0,0,0,0,0,0,0
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 		},
 		{
-			0,0,0,0,0,0,0,0,0,0
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 		},
 		{
-			0,0,0,0,0,0,0,0,0,0
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 		},
+{
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+},
+{
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+},
+{
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+},
+{
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+},
+{
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+},
+{
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+},
+{
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+},
+{
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+},
+{
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+},
+{
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+},
 	};
 
 	TArray<TArray<int32>> DirectionData = {
 		{
-			-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+			-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 		},
 	{
-		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 	},
 	{
-		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 	},
 	{
-		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 	},
 	{
-		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 	},
 	{
-		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 	},
 	{
-		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 	},
 	{
-		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 	},
 	{
-		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 	},
 	{
-		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+	},{
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 	},
+{
+	-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+},
+{
+	-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+},
+{
+	-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+},
+{
+	-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+},
+{
+	-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+},
+{
+	-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+},
+{
+	-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+},
+{
+	-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+},
+{
+	-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+},
 };
 
 protected:

@@ -43,15 +43,20 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+	void ApplyBranch(int32 Dir);
+	void RestoreBranch();
 
 	UPROPERTY()
 	int32 MapType = 0;
 
-	UPROPERTY()
-	int32 Direction = 0;
+	UPROPERTY(BlueprintReadOnly)
+	int32 BranchDir = -1;
 
-	UPROPERTY()
-	int32 PrevDirection = 0;
+	UPROPERTY(BlueprintReadOnly)
+	int32 Direction = -1;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 PrevDirection = -1;
 
 	UFUNCTION(BlueprintCallable)
 	void SetDirection();

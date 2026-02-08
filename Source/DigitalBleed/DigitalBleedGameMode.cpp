@@ -5,13 +5,13 @@
 #include "CborTypes.h"
 #include "HLSLTypeAliases.h"
 
-constexpr int32 GDungeonMapWidth = 10;
+constexpr int32 GDungeonMapWidth = 20;
 constexpr int32 GTileWidth = 5;
 constexpr float GTileSize = GTileWidth * 100.0;
 const FVector GMapRoomStartOffset = FVector(0.0f, 0.0f, 0.0f);
-constexpr int32 GCriticalPathLength = 20;
+constexpr int32 GCriticalPathLength = 40;
 constexpr int32 GBranchesMaxNum = 3;
-constexpr int32 GBranchLength = 4;
+constexpr int32 GBranchLength = 10;
 
 ADigitalBleedGameMode::ADigitalBleedGameMode()
 {
@@ -50,7 +50,7 @@ void ADigitalBleedGameMode::GenerateBranches()
 		{
 			if (this->MapData[i][j] == 4)
 			{
-				this->GenerateBranchPath({i,j}, FMath::RandRange(1, GBranchLength));
+				this->GenerateBranchPath({i,j}, {i,j}, FMath::RandRange(1, GBranchLength));
 			}
 		}
 	}
@@ -63,9 +63,7 @@ void ADigitalBleedGameMode::GenerateBranches()
  */
 void ADigitalBleedGameMode::SpawnDungeonRoom(TArray<int32> PrevPoint,TArray<int32> LastPoint, TArray<int32> NextPoint)
 {
-	FVector SpawnLocation = GMapRoomStartOffset + FVector(NextPoint[1] * GTileSize, NextPoint[0] * GTileSize, 0.0f);
 	FRotator SpawnRotation = FRotator::ZeroRotator;
-
 	
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -74,7 +72,7 @@ void ADigitalBleedGameMode::SpawnDungeonRoom(TArray<int32> PrevPoint,TArray<int3
 	{
 		FVector SpawnLocationFirstRoom = GMapRoomStartOffset + FVector(LastPoint[1] * GTileSize, LastPoint[0] * GTileSize, 0.0f);
 		
-		UE_LOG(LogTemp, Log, TEXT("[%d,%d] Spawned at %s"), LastPoint[0], LastPoint[1], *SpawnLocationFirstRoom.ToString());
+		// UE_LOG(LogTemp, Log, TEXT("[%d,%d] Spawned at %s"), LastPoint[0], LastPoint[1], *SpawnLocationFirstRoom.ToString());
 
 		ADungeonRoom* SpawnedWall = GetWorld()->SpawnActor<ADungeonRoom>(
 			MapWallNoneClass,
@@ -82,6 +80,12 @@ void ADigitalBleedGameMode::SpawnDungeonRoom(TArray<int32> PrevPoint,TArray<int3
 			SpawnRotation,
 			SpawnParams
 		);
+
+		if (LastPoint[0] >= 0)
+		{
+			Rooms[LastPoint[0]][LastPoint[1]] = SpawnedWall; 
+		}
+		// [LastPoint[0]][LastPoint[1]
 		SpawnedWall->Direction = this->DirectionData[LastPoint[0]][LastPoint[1]];
 		if (PrevPoint[0] >= 0)
 		{
@@ -92,7 +96,7 @@ void ADigitalBleedGameMode::SpawnDungeonRoom(TArray<int32> PrevPoint,TArray<int3
 		}
 		SpawnedWall->MapType = this->MapData[LastPoint[0]][LastPoint[1]];
 		SpawnedWall->SetDirection();
-		UE_LOG(LogTemp, Log, TEXT("[%d,%d] Spawned at %s"), NextPoint[0], NextPoint[1], *SpawnLocation.ToString());
+		//UE_LOG(LogTemp, Log, TEXT("[%d,%d] Spawned at %s"), NextPoint[0], NextPoint[1], *SpawnLocation.ToString());
 	}
 }
 
@@ -103,7 +107,6 @@ void ADigitalBleedGameMode::SpawnDungeonRoom(TArray<int32> PrevPoint,TArray<int3
  */
 void ADigitalBleedGameMode::GenerateCriticalPath(TArray<int32> PrevPoint, TArray<int32> LastPoint, int32 Length)
 {
-	if (Length <= 0) return;
 	// 시작점에서 진행할 방향을 정한다.
 	int32 RandomDirection = FMath::RandRange(0, 3);
 	TArray<int32> NextPoint = LastPoint;
@@ -133,77 +136,109 @@ void ADigitalBleedGameMode::GenerateCriticalPath(TArray<int32> PrevPoint, TArray
 		bIsOk = true;
 	}
 
+	if (bIsOk)
+	{
+		//다음 포인트는 3을 넣고, 이전 포인트는 1을 넣어서 마지막 룸이 3이 되도록 만듦.
+		this->MapData[NextPoint[0]][NextPoint[1]] = 3;
+		if (this->MapData[LastPoint[0]][LastPoint[1]] != 2)
+		{
+			this->MapData[LastPoint[0]][LastPoint[1]] = FMath::RandBool() ? 1 : 4;
+		}
+	
+		this->DirectionData[LastPoint[0]][LastPoint[1]] = RandomDirection;
+
+		this->SpawnDungeonRoom(PrevPoint, LastPoint, NextPoint);
+	}
+
+	if (Length == 0)
+	{
+		this->MapData[LastPoint[0]][LastPoint[1]] = 3;
+		this->SpawnDungeonRoom(PrevPoint, LastPoint, LastPoint);
+	}
+
+	if (Length <= 0) return;
+
 	if (!bIsOk)
 	{
 		this->GenerateCriticalPath(PrevPoint, LastPoint, Length-1); //다시 호출하여 Direction 랜덤값을 다시 받아오길 희망
 		return;
 	}
 
-	//마지막으로 Length가 1이면 3을 넣어서 Endpoint임을 표기하고 아니면 1을 넣어서 일반 길을 만듦
-	this->MapData[NextPoint[0]][NextPoint[1]] = Length==1 ? 3 : 1;
-	this->DirectionData[LastPoint[0]][LastPoint[1]] = RandomDirection;
-
-	if (Length > 1)
-	{
-		if (FMath::RandBool() == true && NumBranches < GBranchesMaxNum)
-		{
-			// 브랜치 후보는 4로 표기한다!
-			this->MapData[NextPoint[0]][NextPoint[1]] = 4;
-		}
-	}
-
-	this->SpawnDungeonRoom(PrevPoint, LastPoint, NextPoint);
-
 	//Length-1 해서 재귀호출
 	this->GenerateCriticalPath(LastPoint, NextPoint, Length-1);
 }
 
-void ADigitalBleedGameMode::GenerateBranchPath(TArray<int32> LastPoint, int32 Length)
+void ADigitalBleedGameMode::GenerateBranchPath(TArray<int32> PrevPoint, TArray<int32> LastPoint, int32 Length)
 {
-	// if (Length <= 0) return;
-	//
-	// int32 RandomDirection = FMath::RandRange(0, 3);
-	// TArray<int32> NextPoint = LastPoint;
-	// bool bIsOk = false;
-	//
-	// switch (RandomDirection)
-	// {
-	// case 0: //UP
-	// 	NextPoint[0] -= 1;
-	// 	break;
-	// case 1: // RIGHT
-	// 	NextPoint[1] += 1;
-	// 	break;
-	// case 2: // DOWN
-	// 	NextPoint[0] += 1;
-	// 	break;
-	// case 3: // LEFT
-	// 	NextPoint[1] -= 1;
-	// 	break;
-	// }
-	//
-	// if (NextPoint[0] >= 0 && NextPoint[0] < GDungeonMapWidth &&
-	// 	NextPoint[1] >= 0 && NextPoint[1] < GDungeonMapWidth &&
-	// 	this->MapData[NextPoint[0]][NextPoint[1]] == 0
-	// )
-	// {
-	// 	bIsOk = true;
-	// }
-	//
-	// if (!bIsOk)
-	// {
-	// 	this->GenerateCriticalPath(LastPoint, Length-1); //다시 호출하여 Direction 랜덤값을 다시 받아오길 희망
-	// 	return;
-	// }
-	//
-	// // 브랜치의 마지막은 6, 일반 브랜치 길은 5이다.
-	// this->MapData[NextPoint[0]][NextPoint[1]] = Length==1 ? 6 : 5;
-	// this->DirectionData[LastPoint[0]][LastPoint[1]] = RandomDirection;
-	//
-	// this->SpawnDungeonRoom(LastPoint, NextPoint);
-	//
-	// //Length-1 해서 재귀호출
-	// this->GenerateBranchPath(NextPoint, Length-1);
+	
+	
+	int32 RandomDirection = FMath::RandRange(0, 3);
+	TArray<int32> NextPoint = LastPoint;
+	bool bIsOk = false;
+	
+	switch (RandomDirection)
+	{
+	case 0: //UP
+		NextPoint[0] -= 1;
+		break;
+	case 1: // RIGHT
+		NextPoint[1] += 1;
+		break;
+	case 2: // DOWN
+		NextPoint[0] += 1;
+		break;
+	case 3: // LEFT
+		NextPoint[1] -= 1;
+		break;
+	}
+	
+	if (NextPoint[0] >= 0 && NextPoint[0] < GDungeonMapWidth &&
+		NextPoint[1] >= 0 && NextPoint[1] < GDungeonMapWidth &&
+		this->MapData[NextPoint[0]][NextPoint[1]] == 0
+	)
+	{
+		bIsOk = true;
+	}
+	
+	
+	if (bIsOk)
+	{
+		// 브랜치의 마지막은 6, 일반 브랜치 길은 5이다.
+		this->MapData[NextPoint[0]][NextPoint[1]] = 6;
+		this->MapData[LastPoint[0]][LastPoint[1]] = 5;
+		this->DirectionData[LastPoint[0]][LastPoint[1]] = RandomDirection;
+
+		
+		if (PrevPoint[0] == LastPoint[0] && PrevPoint[1] == LastPoint[1])
+		{
+			Rooms[LastPoint[0]][LastPoint[1]]->ApplyBranch(RandomDirection);
+		} else
+		{
+			this->SpawnDungeonRoom(PrevPoint, LastPoint, NextPoint);
+		}
+	}
+
+	if (Length == 0)
+	{
+		this->MapData[LastPoint[0]][LastPoint[1]] = 6;
+		if (PrevPoint[0] == LastPoint[0] && PrevPoint[1] == LastPoint[1])
+		{
+			Rooms[LastPoint[0]][LastPoint[1]]->RestoreBranch();
+		} else
+		{
+			this->SpawnDungeonRoom(PrevPoint, LastPoint, NextPoint);
+		}
+	}
+	
+
+	if (Length <= 0) return;
+	if (!bIsOk)
+	{
+		this->GenerateBranchPath(PrevPoint,LastPoint, Length-1); //다시 호출하여 Direction 랜덤값을 다시 받아오길 희망
+		return;
+	}
+	//Length-1 해서 재귀호출
+	this->GenerateBranchPath(LastPoint, NextPoint, Length-1);
 }
 
 /**

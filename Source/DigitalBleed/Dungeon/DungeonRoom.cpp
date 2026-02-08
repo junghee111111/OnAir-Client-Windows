@@ -66,48 +66,102 @@ void ADungeonRoom::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void ADungeonRoom::SetDirection()
+void ADungeonRoom::ApplyBranch(int32 Dir)
 {
-	UE_LOG(LogTemp, Log, TEXT("%d : %d => %d"), this->MapType, this->PrevDirection, this->Direction)
-	
-	switch (this->Direction)
+	this->BranchDir = Dir;
+	switch (Dir)
 	{
 	case 0://up
-		this->WallLeftMesh->SetVisibility(false);
+		this->WallLeftMesh->SetVisibility(false, true);
 		this->WallLeftMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		break;
 	case 1://right
-		this->WallFrontMesh->SetVisibility(false);
+		this->WallFrontMesh->SetVisibility(false, true);
 		this->WallFrontMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		break;
 	case 2://down
-		this->WallRightMesh->SetVisibility(false);
+		this->WallRightMesh->SetVisibility(false, true);
 		this->WallRightMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		break;
 	case 3://left
-		this->WallBackMesh->SetVisibility(false);
+		this->WallBackMesh->SetVisibility(false, true);
 		this->WallBackMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		break;
 	}
+}
+
+void ADungeonRoom::RestoreBranch()
+{
+	switch (this->BranchDir)
+	{
+	case 0://up
+		this->WallLeftMesh->SetVisibility(true, true);
+		this->WallLeftMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		break;
+	case 1://right
+		this->WallFrontMesh->SetVisibility(true, true);
+		this->WallFrontMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		break;
+	case 2://down
+		this->WallRightMesh->SetVisibility(true, true);
+		this->WallRightMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		break;
+	case 3://left
+		this->WallBackMesh->SetVisibility(true, true);
+		this->WallBackMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		break;
+	}
+}
+
+void ADungeonRoom::SetDirection()
+{
+	UE_LOG(LogTemp, Log, TEXT("%d : %d => %d"), this->MapType, this->PrevDirection, this->Direction)
+
+
+	if (this->MapType != 3 && this->MapType != 6)
+	{
+		switch (this->Direction)
+		{
+		case 0://up
+			this->WallLeftMesh->SetVisibility(false, true);
+			this->WallLeftMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			break;
+		case 1://right
+			this->WallFrontMesh->SetVisibility(false, true);
+			this->WallFrontMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			break;
+		case 2://down
+			this->WallRightMesh->SetVisibility(false, true);
+			this->WallRightMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			break;
+		case 3://left
+			this->WallBackMesh->SetVisibility(false, true);
+			this->WallBackMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			break;
+		}
+	}
+
+	
+	
 	
 	if (this->MapType!=2) //맨 처음 방이 아니면 적어도 두 벽이 뚫려있어야함.
 	{
 		switch (this->PrevDirection)
 		{
 		case 0://up
-			this->WallRightMesh->SetVisibility(false);
+			this->WallRightMesh->SetVisibility(false, true);
 			this->WallRightMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			break;
 		case 1://right
-			this->WallBackMesh->SetVisibility(false);
+			this->WallBackMesh->SetVisibility(false, true);
 			this->WallBackMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			break;
 		case 2://down
-			this->WallLeftMesh->SetVisibility(false);
+			this->WallLeftMesh->SetVisibility(false, true);
 			this->WallLeftMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			break;
 		case 3://left
-			this->WallFrontMesh->SetVisibility(false);
+			this->WallFrontMesh->SetVisibility(false, true);
 			this->WallFrontMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			break;
 		}
