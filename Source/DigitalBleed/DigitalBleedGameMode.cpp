@@ -18,6 +18,10 @@ ADigitalBleedGameMode::ADigitalBleedGameMode()
 	// stub
 }
 
+/**
+ * 디버그용임
+ * @author junghee wang
+ */
 void ADigitalBleedGameMode::PrintMapInfo()
 {
 	UE_LOG(LogTemp, Log, TEXT("MAP======================"));
@@ -42,6 +46,11 @@ void ADigitalBleedGameMode::PrintMapInfo()
 	}
 }
 
+/**
+ * 크리티컬 패스에서 만든 맵 정보를 가지고
+ * 4번 값이 있는 경우만 찾아서 Branch Path를 추가적으로 덧붙인다.
+ * @author junghee wang
+ */
 void ADigitalBleedGameMode::GenerateBranches()
 {
 	for (int i = 0; i < GDungeonMapWidth; i ++)
@@ -168,6 +177,13 @@ void ADigitalBleedGameMode::GenerateCriticalPath(TArray<int32> PrevPoint, TArray
 	this->GenerateCriticalPath(LastPoint, NextPoint, Length-1);
 }
 
+/**
+ * 브랜치 패스를 추가적으로 Critical Path에 붙인다.
+ * 어떻게 만들었는지는 나도 잘 기억이 안난다...
+ * @param PrevPoint 
+ * @param LastPoint 
+ * @param Length 
+ */
 void ADigitalBleedGameMode::GenerateBranchPath(TArray<int32> PrevPoint, TArray<int32> LastPoint, int32 Length)
 {
 	
@@ -204,6 +220,7 @@ void ADigitalBleedGameMode::GenerateBranchPath(TArray<int32> PrevPoint, TArray<i
 	if (bIsOk)
 	{
 		// 브랜치의 마지막은 6, 일반 브랜치 길은 5이다.
+		// 여기 코드 순서 바꾸면 좆됨..
 		this->MapData[NextPoint[0]][NextPoint[1]] = 6;
 		this->MapData[LastPoint[0]][LastPoint[1]] = 5;
 		this->DirectionData[LastPoint[0]][LastPoint[1]] = RandomDirection;
@@ -266,7 +283,7 @@ void ADigitalBleedGameMode::PostProcess()
 		{
 			if (this->MapData[i][j] == 2) // 만약 값이 2이면 시작점이므로
 			{
-				// Spawn actor MapWallNone
+				// 플레이어를 시작점에 위치시킨다!
 				FVector SpawnLocation = GMapRoomStartOffset + FVector(j * GTileSize, i * GTileSize, 100.0f);
 				FRotator SpawnRotation = FRotator::ZeroRotator;
 				//spawn current player at SpawnLocation
@@ -292,7 +309,7 @@ void ADigitalBleedGameMode::BeginPlay()
 	this->GenerateMap();
 	this->GenerateCriticalPath({-1,-1},this->CriticalPathLastPoint, GCriticalPathLength);
 	this->GenerateBranches();
-	this->PrintMapInfo();
+	//this->PrintMapInfo();
 
 	this->PostProcess();
 }
