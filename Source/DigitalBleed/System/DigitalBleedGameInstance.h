@@ -38,6 +38,7 @@ private:
 	TArray<TArray<int32>> Dungeon_MapData;
 	TArray<TArray<int32>> Dungeon_DirectionData;
 	TArray<TArray<int32>> Dungeon_PrevDirectionData;
+	TArray<TArray<int32>> Dungeon_BranchData;
 	
 protected:
 	UPROPERTY()
@@ -389,8 +390,14 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	bool bIsDungeonBeRestored = false;
 
+	UPROPERTY(BlueprintReadWrite)
+	FTransform LastTransform;
+
 	void SetDungeonData(const TArray<TArray<int32>>& InMapData,
-	                    const TArray<TArray<int32>>& InDirectionData, const TArray<TArray<int32>>& InPrevDirectionData);
+	                    const TArray<TArray<int32>>& InDirectionData,
+	                    const TArray<TArray<int32>>& InPrevDirectionData,
+	                    const TArray<TArray<int32>>& InBranchData
+	                    );
 
 	UFUNCTION(BlueprintCallable)
 	void ResetDungeon();
@@ -398,6 +405,7 @@ public:
 	TArray<TArray<int32>>& GetMapData() { return Dungeon_MapData; }
 	TArray<TArray<int32>>& GetDirectionData() { return Dungeon_DirectionData; }
 	TArray<TArray<int32>>& GetPrevDirectionData() { return Dungeon_PrevDirectionData; }
+	TArray<TArray<int32>>& GetBranchData() { return Dungeon_BranchData; }
 	
 	
 };

@@ -31,6 +31,7 @@ private:
 	TArray<TArray<int32>> MapData;
 	TArray<TArray<int32>> DirectionData;
 	TArray<TArray<int32>> PrevDirectionData;
+	TArray<TArray<int32>> BranchData;
 	
 	void PostProcess();
 	TArray<int32> StartPoint = {0,0};

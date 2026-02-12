@@ -808,7 +808,12 @@ void ABattleGameMode::ExecuteSkill()
 	// 만약 플레이어가 스킬을 시전하면 면상을 한번 보여주게함
 	if (!this->CurrentTurnTarget.StartsWith("Enemy_"))
 	{
-		this->MainCam->SeePlayerCenterToMargin(CurrentLife->GetActorLocation());
+		// 마법계 스킬일때만 손목을 그으므로 물리계스킬일때는 얼굴 안보여줘도 댐!
+		if (this->CurrentSkill.Elemental > 0)
+		{
+			this->MainCam->SeePlayerCenterToMargin(CurrentLife->GetActorLocation());
+		}
+		
 	}
 
 	FTimerHandle Th;

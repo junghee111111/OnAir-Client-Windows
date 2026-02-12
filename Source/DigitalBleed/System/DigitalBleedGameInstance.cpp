@@ -975,12 +975,14 @@ bool UDigitalBleedGameInstance::HasItem(FName ItemId, int32 MinQty) const
 void UDigitalBleedGameInstance::SetDungeonData(
 	const TArray<TArray<int32>>& InMapData,
 	const TArray<TArray<int32>>& InDirectionData,
-	const TArray<TArray<int32>>& InPrevDirectionData
-	)
+	const TArray<TArray<int32>>& InPrevDirectionData,
+	const TArray<TArray<int32>>& InBranchData
+)
 {
 	this->Dungeon_MapData = InMapData;
 	this->Dungeon_DirectionData = InDirectionData;
 	this->Dungeon_PrevDirectionData = InPrevDirectionData;
+	this->Dungeon_BranchData = InBranchData;
 }
 
 void UDigitalBleedGameInstance::ResetDungeon()
@@ -988,10 +990,12 @@ void UDigitalBleedGameInstance::ResetDungeon()
 	Dungeon_MapData.SetNum(GDungeonMapWidth);
 	Dungeon_DirectionData.SetNum(GDungeonMapWidth);
 	Dungeon_PrevDirectionData.SetNum(GDungeonMapWidth);
+	Dungeon_BranchData.SetNum(GDungeonMapWidth);
 	for (int32 i = 0; i < GDungeonMapWidth; i++)
 	{
 		Dungeon_MapData[i].Init(0, GDungeonMapWidth);
 		Dungeon_DirectionData[i].Init(-1, GDungeonMapWidth);
 		Dungeon_PrevDirectionData[i].Init(-1, GDungeonMapWidth);
+		Dungeon_BranchData[i].Init(-1, GDungeonMapWidth);
 	}
 }

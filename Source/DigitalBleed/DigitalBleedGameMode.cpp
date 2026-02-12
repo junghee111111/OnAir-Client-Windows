@@ -27,12 +27,14 @@ ADigitalBleedGameMode::ADigitalBleedGameMode()
 	MapData.SetNum(GDungeonMapWidth);
 	DirectionData.SetNum(GDungeonMapWidth);
 	PrevDirectionData.SetNum(GDungeonMapWidth);
+	BranchData.SetNum(GDungeonMapWidth);
 	
 	for (int32 i = 0; i < GDungeonMapWidth; i++)
 	{
 		MapData[i].Init(0, GDungeonMapWidth);
 		DirectionData[i].Init(-1, GDungeonMapWidth);
 		PrevDirectionData[i].Init(-1, GDungeonMapWidth);
+		BranchData[i].Init(-1, GDungeonMapWidth);
 	}
 }
 
@@ -146,6 +148,7 @@ void ADigitalBleedGameMode::SpawnDungeonFromRestoredData()
 		{
 			if (MapWallNoneClass) // 헤더에 TSubclassOf<AActor> MapWallNoneClass 선언 필요
 			{
+				if (this->MapData[i][j]==0) continue;
 				FVector SpawnLocationFirstRoom = GMapRoomStartOffset + FVector(j * GTileSize, i * GTileSize, 0.0f);
 				ADungeonRoom* SpawnedWall = GetWorld()->SpawnActor<ADungeonRoom>(
 					MapWallNoneClass,
@@ -159,6 +162,11 @@ void ADigitalBleedGameMode::SpawnDungeonFromRestoredData()
 				SpawnedWall->PrevDirection = this->PrevDirectionData[i][j];
 				SpawnedWall->MapType = this->MapData[i][j];
 				SpawnedWall->SetDirection();
+
+				if (this->BranchData[i][j] != -1)
+				{
+					Rooms[i][j]->ApplyBranch(this->BranchData[i][j]);
+				}
 			}
 		}
 	}
@@ -288,6 +296,7 @@ void ADigitalBleedGameMode::GenerateBranchPath(TArray<int32> PrevPoint, TArray<i
 		if (PrevPoint[0] == LastPoint[0] && PrevPoint[1] == LastPoint[1])
 		{
 			Rooms[LastPoint[0]][LastPoint[1]]->ApplyBranch(RandomDirection);
+			BranchData[LastPoint[0]][LastPoint[1]] = RandomDirection;
 		} else
 		{
 			this->SpawnDungeonRoom(PrevPoint, LastPoint, NextPoint);
@@ -300,6 +309,7 @@ void ADigitalBleedGameMode::GenerateBranchPath(TArray<int32> PrevPoint, TArray<i
 		if (PrevPoint[0] == LastPoint[0] && PrevPoint[1] == LastPoint[1])
 		{
 			Rooms[LastPoint[0]][LastPoint[1]]->RestoreBranch();
+			BranchData[LastPoint[0]][LastPoint[1]] = -1;
 		} else
 		{
 			this->SpawnDungeonRoom(PrevPoint, LastPoint, NextPoint);
@@ -365,7 +375,8 @@ void ADigitalBleedGameMode::PostProcess()
 		}
 	}
 
-	this->MyGameInstance->SetDungeonData(this->MapData, this->DirectionData, this->PrevDirectionData);
+	this->MyGameInstance->SetDungeonData(
+		this->MapData, this->DirectionData, this->PrevDirectionData, this->BranchData);
 }
 
 void ADigitalBleedGameMode::BeginPlay()
@@ -376,10 +387,12 @@ void ADigitalBleedGameMode::BeginPlay()
 
 	if (this->MyGameInstance->bIsDungeonBeRestored)
 	{
+		UE_LOG(LogTemp, Log, TEXT("Dungeon Be Restored"));
 		this->RestoreDungeonData();
 		this->SpawnDungeonFromRestoredData();
 	} else
 	{
+		UE_LOG(LogTemp, Log, TEXT("Dungeon Be Generated"));
 		this->GenerateMap();
 		this->GenerateCriticalPath({-1,-1},this->CriticalPathLastPoint, GCriticalPathLength);
 		this->GenerateBranches();
