@@ -58,9 +58,6 @@ protected:
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Player Classes")
 	TSubclassOf<ALifeHuman> Player_YJSClass = nullptr;
 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Player Classes")
-	TSubclassOf<ALifeHuman> Player_Class = nullptr;
-
 	void SpawnPlayers();
 	
 	// ========== Battle Rewards ==========

@@ -46,7 +46,7 @@ public:
 	void ApplyBranch(int32 Dir);
 	void RestoreBranch();
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	int32 MapType = 0;
 
 	UPROPERTY(BlueprintReadOnly)

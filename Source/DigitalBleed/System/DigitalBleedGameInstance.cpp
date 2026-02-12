@@ -24,6 +24,7 @@ constexpr int32 Z_INDEX_DIALOG = 40;
 constexpr int32 Z_INDEX_DIALOG_SELECTION = 45;
 constexpr int32 Z_INDEX_TRIAGE = 31;
 constexpr int32 Z_INDEX_MAIN_HUD = 30;
+constexpr int32 GDungeonMapWidth = 20;
 
 void UDigitalBleedGameInstance::FakeLoadingScreenInit()
 {
@@ -36,6 +37,11 @@ void UDigitalBleedGameInstance::FakeLoadingScreenInit()
 			PC, this->WbpLoadingScreenFakerClass, TEXT("LoadingScreenFaker"));
 		this->WbpLoadingScreenFaker->AddToViewport(Z_INDEX_LOADING_SCREEN_FAKER);
 	}
+}
+
+UDigitalBleedGameInstance::UDigitalBleedGameInstance()
+{
+	this->ResetDungeon();
 }
 
 void UDigitalBleedGameInstance::Init()
@@ -966,7 +972,26 @@ bool UDigitalBleedGameInstance::HasItem(FName ItemId, int32 MinQty) const
 	return GetItemQuantity(ItemId) >= MinQty;
 }
 
-void UDigitalBleedGameInstance::SetNeedsRestoreMatrix(bool newBool)
+void UDigitalBleedGameInstance::SetDungeonData(
+	const TArray<TArray<int32>>& InMapData,
+	const TArray<TArray<int32>>& InDirectionData,
+	const TArray<TArray<int32>>& InPrevDirectionData
+	)
 {
-	this->bNeedsRestoreMatrix = newBool;
+	this->Dungeon_MapData = InMapData;
+	this->Dungeon_DirectionData = InDirectionData;
+	this->Dungeon_PrevDirectionData = InPrevDirectionData;
+}
+
+void UDigitalBleedGameInstance::ResetDungeon()
+{
+	Dungeon_MapData.SetNum(GDungeonMapWidth);
+	Dungeon_DirectionData.SetNum(GDungeonMapWidth);
+	Dungeon_PrevDirectionData.SetNum(GDungeonMapWidth);
+	for (int32 i = 0; i < GDungeonMapWidth; i++)
+	{
+		Dungeon_MapData[i].Init(0, GDungeonMapWidth);
+		Dungeon_DirectionData[i].Init(-1, GDungeonMapWidth);
+		Dungeon_PrevDirectionData[i].Init(-1, GDungeonMapWidth);
+	}
 }

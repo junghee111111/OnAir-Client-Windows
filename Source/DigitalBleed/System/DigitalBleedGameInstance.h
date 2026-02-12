@@ -22,6 +22,7 @@
 #include "UI/MainHud/WidgetMainHud.h"
 #include "DigitalBleedGameInstance.generated.h"
 
+class ADungeonRoom;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGlobalEvent, FString, StringParameter);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCycleChanged, FString, StringParameter);
 
@@ -32,6 +33,11 @@ class DIGITALBLEED_API UDigitalBleedGameInstance : public UGameInstance
 
 	void FakeLoadingScreenInit();
 	TArray<int32> CalculateNextDay() const;
+
+private:
+	TArray<TArray<int32>> Dungeon_MapData;
+	TArray<TArray<int32>> Dungeon_DirectionData;
+	TArray<TArray<int32>> Dungeon_PrevDirectionData;
 	
 protected:
 	UPROPERTY()
@@ -152,9 +158,6 @@ protected:
 	bool bIsOpeningMap;
 
 	UPROPERTY(BlueprintReadOnly)
-	bool bNeedsRestoreMatrix = false;
-
-	UPROPERTY(BlueprintReadOnly)
 	int32 Month = 3;
 
 	UPROPERTY(BlueprintReadOnly)
@@ -196,6 +199,9 @@ protected:
 	ULevelSequenceDirector* LevelSequenceDirector = nullptr;
 	
 public:
+	//constructor
+	UDigitalBleedGameInstance();
+	
 	virtual void Init() override;
 
 	UFUNCTION(BlueprintCallable)
@@ -376,6 +382,22 @@ public:
 	UFUNCTION(BlueprintCallable)
 	int32 GetMoneyWon() const { return Money_Won; }
 
+	// ========== DUNGEON ==========
+	UPROPERTY(BlueprintReadOnly)
+	float Threshold_SpawnShadow = 0.5;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsDungeonBeRestored = false;
+
+	void SetDungeonData(const TArray<TArray<int32>>& InMapData,
+	                    const TArray<TArray<int32>>& InDirectionData, const TArray<TArray<int32>>& InPrevDirectionData);
+
 	UFUNCTION(BlueprintCallable)
-	void SetNeedsRestoreMatrix(bool newBool);
+	void ResetDungeon();
+
+	TArray<TArray<int32>>& GetMapData() { return Dungeon_MapData; }
+	TArray<TArray<int32>>& GetDirectionData() { return Dungeon_DirectionData; }
+	TArray<TArray<int32>>& GetPrevDirectionData() { return Dungeon_PrevDirectionData; }
+	
+	
 };

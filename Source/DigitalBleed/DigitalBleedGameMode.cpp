@@ -4,6 +4,8 @@
 
 #include "CborTypes.h"
 #include "HLSLTypeAliases.h"
+#include "Kismet/GameplayStatics.h"
+#include "System/DigitalBleedGameInstance.h"
 
 constexpr int32 GDungeonMapWidth = 20;
 constexpr int32 GTileWidth = 5;
@@ -15,7 +17,21 @@ constexpr int32 GBranchLength = 10;
 
 ADigitalBleedGameMode::ADigitalBleedGameMode()
 {
-	// stub
+	// initialize
+	Rooms.SetNum(GDungeonMapWidth);
+	for (int32 i = 0; i < GDungeonMapWidth; i++)
+	{
+		Rooms[i].Init(nullptr, GDungeonMapWidth);
+	}
+
+	MapData.SetNum(GDungeonMapWidth);
+	
+	DirectionData.SetNum(GDungeonMapWidth);
+	for (int32 i = 0; i < GDungeonMapWidth; i++)
+	{
+		MapData[i].Init(0, GDungeonMapWidth);
+		DirectionData[i].Init(-1, GDungeonMapWidth);
+	}
 }
 
 /**
@@ -73,7 +89,6 @@ void ADigitalBleedGameMode::GenerateBranches()
 void ADigitalBleedGameMode::SpawnDungeonRoom(TArray<int32> PrevPoint,TArray<int32> LastPoint, TArray<int32> NextPoint)
 {
 	FRotator SpawnRotation = FRotator::ZeroRotator;
-	
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
@@ -106,6 +121,44 @@ void ADigitalBleedGameMode::SpawnDungeonRoom(TArray<int32> PrevPoint,TArray<int3
 		SpawnedWall->MapType = this->MapData[LastPoint[0]][LastPoint[1]];
 		SpawnedWall->SetDirection();
 		//UE_LOG(LogTemp, Log, TEXT("[%d,%d] Spawned at %s"), NextPoint[0], NextPoint[1], *SpawnLocation.ToString());
+	}
+}
+
+void ADigitalBleedGameMode::RestoreDungeonData()
+{
+	this->MyGameInstance->bIsDungeonBeRestored = false;
+	this->MapData = this->MyGameInstance->GetMapData();
+	this->DirectionData = this->MyGameInstance->GetDirectionData();
+	this->PrevDirectionData = this->MyGameInstance->GetPrevDirectionData();
+}
+
+void ADigitalBleedGameMode::SpawnDungeonFromRestoredData()
+{
+	FRotator SpawnRotation = FRotator::ZeroRotator;
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	
+	for (int i = 0; i < this->MapData.Num(); i++)
+	{
+		for (int j = 0; j < this->MapData[i].Num(); j++)
+		{
+			if (MapWallNoneClass) // 헤더에 TSubclassOf<AActor> MapWallNoneClass 선언 필요
+			{
+				FVector SpawnLocationFirstRoom = GMapRoomStartOffset + FVector(j * GTileSize, i * GTileSize, 0.0f);
+				ADungeonRoom* SpawnedWall = GetWorld()->SpawnActor<ADungeonRoom>(
+					MapWallNoneClass,
+					SpawnLocationFirstRoom,
+					SpawnRotation,
+					SpawnParams
+				);
+
+				Rooms[i][j] = SpawnedWall; 
+				SpawnedWall->Direction = this->DirectionData[i][j];
+				SpawnedWall->PrevDirection = this->PrevDirectionData[i][j;
+				SpawnedWall->MapType = this->MapData[i][j];
+				SpawnedWall->SetDirection();
+			}
+		}
 	}
 }
 
@@ -155,6 +208,7 @@ void ADigitalBleedGameMode::GenerateCriticalPath(TArray<int32> PrevPoint, TArray
 		}
 	
 		this->DirectionData[LastPoint[0]][LastPoint[1]] = RandomDirection;
+		this->PrevDirectionData[LastPoint[0]][LastPoint[1]] = this->DirectionData[PrevPoint[0]][PrevPoint[1]];
 
 		this->SpawnDungeonRoom(PrevPoint, LastPoint, NextPoint);
 	}
@@ -296,20 +350,37 @@ void ADigitalBleedGameMode::PostProcess()
 						UE_LOG(LogTemp, Log, TEXT("Player Spawned at %s"), *SpawnLocation.ToString());
 						PlayerPawn->SetActorLocation(SpawnLocation);
 						PlayerPawn->SetActorRotation(SpawnRotation);
+
+						FTransform SpawnTransform = FTransform::Identity;
+						SpawnTransform.SetTranslation(SpawnLocation);
+						this->SpawnPlayers(SpawnTransform);
 					}
 				}
 			}
 		}
 	}
+
+	this->MyGameInstance->SetDungeonData(this->MapData, this->DirectionData, this->PrevDirectionData);
 }
 
 void ADigitalBleedGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-	this->GenerateMap();
-	this->GenerateCriticalPath({-1,-1},this->CriticalPathLastPoint, GCriticalPathLength);
-	this->GenerateBranches();
-	//this->PrintMapInfo();
+	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
+	this->MyGameInstance = GI;
+
+	if (this->MyGameInstance->bIsDungeonBeRestored)
+	{
+		this->RestoreDungeonData();
+		this->SpawnDungeonFromRestoredData();
+	} else
+	{
+		this->GenerateMap();
+		this->GenerateCriticalPath({-1,-1},this->CriticalPathLastPoint, GCriticalPathLength);
+		this->GenerateBranches();
+		//this->PrintMapInfo();
+	}
+	
 
 	this->PostProcess();
 }
@@ -318,4 +389,41 @@ void ADigitalBleedGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
 	
+}
+
+void ADigitalBleedGameMode::SpawnPlayers(const FTransform& SpawnTransform)
+{
+	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
+	for (int32 i = 1; i < GI->GetPartyLength(); ++i) // 나를 제외하기 위해 i를 1부터 시작시킴
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		
+		FString PlayerCode = GI->GetPartyMembers()[i];
+		AActor* SpawnedCharacter = nullptr;
+
+		if (PlayerCode.Equals(FString("HYJ"), ESearchCase::IgnoreCase))
+		{
+			SpawnedCharacter= GetWorld()->SpawnActor(Player_HYJClass,&SpawnTransform, SpawnParams);
+		}else if (PlayerCode.Equals(FString("CJY"), ESearchCase::IgnoreCase))
+		{
+			SpawnedCharacter= GetWorld()->SpawnActor(Player_CJYClass,&SpawnTransform, SpawnParams);
+		} else if (PlayerCode.Equals(FString("JAR"), ESearchCase::IgnoreCase))
+		{
+			SpawnedCharacter= GetWorld()->SpawnActor(Player_JARClass,&SpawnTransform, SpawnParams);
+		} else
+		{
+			SpawnedCharacter = GetWorld()->SpawnActor(DefaultPawnClass,&SpawnTransform, SpawnParams);
+		}
+		
+		
+		ALifeHuman* LifeHuman = Cast<ALifeHuman>(SpawnedCharacter);
+		if (IsValid(LifeHuman))
+		{
+			// PC->Possess(LifeHuman);
+			LifeHuman->PlayerCode = GI->GetPartyMembers()[i];
+			LifeHuman->SetTmpCode(GI->GetPartyMembers()[i]);
+			PartyMembers.Add(LifeHuman);
+		}
+	}
 }
