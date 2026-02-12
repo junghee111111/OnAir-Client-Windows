@@ -386,7 +386,7 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	float Threshold_SpawnShadow = 0.5;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadWrite)
 	bool bIsDungeonBeRestored = false;
 
 	void SetDungeonData(const TArray<TArray<int32>>& InMapData,

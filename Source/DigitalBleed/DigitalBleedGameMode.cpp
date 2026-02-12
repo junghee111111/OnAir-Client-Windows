@@ -25,12 +25,14 @@ ADigitalBleedGameMode::ADigitalBleedGameMode()
 	}
 
 	MapData.SetNum(GDungeonMapWidth);
-	
 	DirectionData.SetNum(GDungeonMapWidth);
+	PrevDirectionData.SetNum(GDungeonMapWidth);
+	
 	for (int32 i = 0; i < GDungeonMapWidth; i++)
 	{
 		MapData[i].Init(0, GDungeonMapWidth);
 		DirectionData[i].Init(-1, GDungeonMapWidth);
+		PrevDirectionData[i].Init(-1, GDungeonMapWidth);
 	}
 }
 
@@ -154,7 +156,7 @@ void ADigitalBleedGameMode::SpawnDungeonFromRestoredData()
 
 				Rooms[i][j] = SpawnedWall; 
 				SpawnedWall->Direction = this->DirectionData[i][j];
-				SpawnedWall->PrevDirection = this->PrevDirectionData[i][j;
+				SpawnedWall->PrevDirection = this->PrevDirectionData[i][j];
 				SpawnedWall->MapType = this->MapData[i][j];
 				SpawnedWall->SetDirection();
 			}
@@ -208,7 +210,10 @@ void ADigitalBleedGameMode::GenerateCriticalPath(TArray<int32> PrevPoint, TArray
 		}
 	
 		this->DirectionData[LastPoint[0]][LastPoint[1]] = RandomDirection;
-		this->PrevDirectionData[LastPoint[0]][LastPoint[1]] = this->DirectionData[PrevPoint[0]][PrevPoint[1]];
+		if (PrevPoint[0] >= 0)
+		{
+			this->PrevDirectionData[LastPoint[0]][LastPoint[1]] = this->DirectionData[PrevPoint[0]][PrevPoint[1]];
+		}
 
 		this->SpawnDungeonRoom(PrevPoint, LastPoint, NextPoint);
 	}
