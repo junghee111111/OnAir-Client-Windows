@@ -24,7 +24,7 @@ constexpr int32 Z_INDEX_DIALOG = 40;
 constexpr int32 Z_INDEX_DIALOG_SELECTION = 45;
 constexpr int32 Z_INDEX_TRIAGE = 31;
 constexpr int32 Z_INDEX_MAIN_HUD = 30;
-constexpr int32 GDungeonMapWidth = 20;
+constexpr int32 DungeonMapWidth = 20;
 
 void UDigitalBleedGameInstance::FakeLoadingScreenInit()
 {
@@ -987,15 +987,15 @@ void UDigitalBleedGameInstance::SetDungeonData(
 
 void UDigitalBleedGameInstance::ResetDungeon()
 {
-	Dungeon_MapData.SetNum(GDungeonMapWidth);
-	Dungeon_DirectionData.SetNum(GDungeonMapWidth);
-	Dungeon_PrevDirectionData.SetNum(GDungeonMapWidth);
-	Dungeon_BranchData.SetNum(GDungeonMapWidth);
-	for (int32 i = 0; i < GDungeonMapWidth; i++)
+	Dungeon_MapData.SetNum(DungeonMapWidth);
+	Dungeon_DirectionData.SetNum(DungeonMapWidth);
+	Dungeon_PrevDirectionData.SetNum(DungeonMapWidth);
+	Dungeon_BranchData.SetNum(DungeonMapWidth);
+	for (int32 i = 0; i < DungeonMapWidth; i++)
 	{
-		Dungeon_MapData[i].Init(0, GDungeonMapWidth);
-		Dungeon_DirectionData[i].Init(-1, GDungeonMapWidth);
-		Dungeon_PrevDirectionData[i].Init(-1, GDungeonMapWidth);
-		Dungeon_BranchData[i].Init(-1, GDungeonMapWidth);
+		Dungeon_MapData[i].Init(0, DungeonMapWidth);
+		Dungeon_DirectionData[i].Init(-1, DungeonMapWidth);
+		Dungeon_PrevDirectionData[i].Init(-1, DungeonMapWidth);
+		Dungeon_BranchData[i].Init(-1, DungeonMapWidth);
 	}
 }

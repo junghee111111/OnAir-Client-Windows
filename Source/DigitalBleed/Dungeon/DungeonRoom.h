@@ -47,6 +47,12 @@ public:
 	void RestoreBranch();
 
 	UPROPERTY(BlueprintReadOnly)
+	int32 XPos = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 YPos = 0;
+
+	UPROPERTY(BlueprintReadOnly)
 	int32 MapType = 0;
 
 	UPROPERTY(BlueprintReadOnly)

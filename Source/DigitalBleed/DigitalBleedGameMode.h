@@ -23,7 +23,7 @@ private:
 	void GenerateBranchPath(TArray<int32> PrevPoint, TArray<int32> LastPoint, int32 Length);
 	void GenerateMap();
 	void PrintMapInfo();
-	void SpawnDungeonRoom(TArray<int32> PrevPoint, TArray<int32> LastPoint,TArray<int32> NextPoint);
+	void SpawnDungeonRoom(TArray<int32> PrevPoint, TArray<int32> CurrentPoint, bool bIsBranch);
 	void RestoreDungeonData();
 	void SpawnDungeonFromRestoredData();
 

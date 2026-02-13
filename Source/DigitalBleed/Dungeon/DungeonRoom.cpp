@@ -68,6 +68,7 @@ void ADungeonRoom::Tick(float DeltaTime)
 
 void ADungeonRoom::ApplyBranch(int32 Dir)
 {
+	UE_LOG(LogTemp, Log, TEXT("[%d,%d] : Apply Branch %d"),this->XPos, this->YPos, Dir);
 	this->BranchDir = Dir;
 	switch (Dir)
 	{
@@ -115,9 +116,7 @@ void ADungeonRoom::RestoreBranch()
 
 void ADungeonRoom::SetDirection()
 {
-	UE_LOG(LogTemp, Log, TEXT("%d : %d => %d"), this->MapType, this->PrevDirection, this->Direction)
-
-
+	UE_LOG(LogTemp, Log, TEXT("[%d,%d] (%d) %d => %d"), this->XPos, this->YPos, this->MapType, this->PrevDirection, this->Direction)
 	if (this->MapType != 3 && this->MapType != 6)
 	{
 		switch (this->Direction)

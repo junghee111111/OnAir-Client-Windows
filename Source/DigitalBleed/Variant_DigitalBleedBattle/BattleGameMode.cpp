@@ -134,7 +134,6 @@ void ABattleGameMode::StartIonTimer()
 		}, TimerDuration, true);
 		this->IonTimerHandles.Add(TimerHandle);
 	}
-	
 }
 
 void ABattleGameMode::AdjustCam()
@@ -1102,6 +1101,17 @@ void ABattleGameMode::EndGame()
 	ALifeHuman* LastMan = AccessLifeByPlayerCode(this->CurrentTurnTarget);
 	UE_LOG(LogTemp,Log,TEXT("[BattleGameMode] : End Game, %s last man"), *this->CurrentTurnTarget);
 
+	// 모든 Ion 타이머를 안전하게 정지 및 제거
+	for (FTimerHandle& TimerHandle : this->IonTimerHandles)
+	{
+		if (GetWorld()->GetTimerManager().IsTimerActive(TimerHandle))
+		{
+			GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
+		}
+	}
+	this->IonTimerHandles.Empty();
+
+	
 	FTimerHandle Th;
 	GetWorldTimerManager().SetTimer(Th, [this, LastMan]()
 	{
@@ -1111,6 +1121,8 @@ void ABattleGameMode::EndGame()
 			LastMan->PlayAnimMontage(LastMan->GetMontageWin(), 1.0f);
 		}
 	}, 1.5f, false);
+
+	
 	
 }
 

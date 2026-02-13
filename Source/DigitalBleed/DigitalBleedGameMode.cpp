@@ -64,6 +64,26 @@ void ADigitalBleedGameMode::PrintMapInfo()
 		}
 		UE_LOG(LogTemp, Log, TEXT("%s"), *Data);
 	}
+	UE_LOG(LogTemp, Log, TEXT("PREVDIR======================"));
+	for (int i = 0; i < GDungeonMapWidth; i++)
+	{
+		FString Data = "";
+		for (int j = 0; j < GDungeonMapWidth; j++)
+		{
+			Data += FString::FromInt(this->PrevDirectionData[i][j]) + " ";
+		}
+		UE_LOG(LogTemp, Log, TEXT("%s"), *Data);
+	}
+	UE_LOG(LogTemp, Log, TEXT("BRANCH======================"));
+	for (int i = 0; i < GDungeonMapWidth; i++)
+	{
+		FString Data = "";
+		for (int j = 0; j < GDungeonMapWidth; j++)
+		{
+			Data += FString::FromInt(this->BranchData[i][j]) + " ";
+		}
+		UE_LOG(LogTemp, Log, TEXT("%s"), *Data);
+	}
 }
 
 /**
@@ -90,7 +110,7 @@ void ADigitalBleedGameMode::GenerateBranches()
  * @param LastPoint 이전 좌표
  * @param NextPoint 현재 좌표
  */
-void ADigitalBleedGameMode::SpawnDungeonRoom(TArray<int32> PrevPoint,TArray<int32> LastPoint, TArray<int32> NextPoint)
+void ADigitalBleedGameMode::SpawnDungeonRoom(TArray<int32> PrevPoint,TArray<int32> CurrentPoint, bool bIsBranch)
 {
 	FRotator SpawnRotation = FRotator::ZeroRotator;
 	FActorSpawnParameters SpawnParams;
@@ -98,9 +118,9 @@ void ADigitalBleedGameMode::SpawnDungeonRoom(TArray<int32> PrevPoint,TArray<int3
 
 	if (MapWallNoneClass) // 헤더에 TSubclassOf<AActor> MapWallNoneClass 선언 필요
 	{
-		FVector SpawnLocationFirstRoom = GMapRoomStartOffset + FVector(LastPoint[1] * GTileSize, LastPoint[0] * GTileSize, 0.0f);
+		FVector SpawnLocationFirstRoom = GMapRoomStartOffset + FVector(CurrentPoint[1] * GTileSize, CurrentPoint[0] * GTileSize, 0.0f);
 		
-		// UE_LOG(LogTemp, Log, TEXT("[%d,%d] Spawned at %s"), LastPoint[0], LastPoint[1], *SpawnLocationFirstRoom.ToString());
+		// UE_LOG(LogTemp, Log, TEXT("[%d,%d] Spawned at %s"), CurrentPoint[0], CurrentPoint[1], *SpawnLocationFirstRoom.ToString());
 
 		ADungeonRoom* SpawnedWall = GetWorld()->SpawnActor<ADungeonRoom>(
 			MapWallNoneClass,
@@ -109,31 +129,48 @@ void ADigitalBleedGameMode::SpawnDungeonRoom(TArray<int32> PrevPoint,TArray<int3
 			SpawnParams
 		);
 
-		if (LastPoint[0] >= 0)
+		if (CurrentPoint[0] >= 0) Rooms[CurrentPoint[0]][CurrentPoint[1]] = SpawnedWall; 
+		SpawnedWall->Direction = this->DirectionData[CurrentPoint[0]][CurrentPoint[1]];
+
+		//여기도 매우 중요
+		if (SpawnedWall->Direction == -1 && bIsBranch)
 		{
-			Rooms[LastPoint[0]][LastPoint[1]] = SpawnedWall; 
+			SpawnedWall->Direction = this->BranchData[CurrentPoint[0]][CurrentPoint[1]];
 		}
-		// [LastPoint[0]][LastPoint[1]
-		SpawnedWall->Direction = this->DirectionData[LastPoint[0]][LastPoint[1]];
+		
 		if (PrevPoint[0] >= 0)
 		{
 			SpawnedWall->PrevDirection = this->DirectionData[PrevPoint[0]][PrevPoint[1]];
+			// 여기서 매우 중요
+			if (bIsBranch)
+			{
+				//브랜치이면서..
+				if (PrevPoint[0] != CurrentPoint[0] || PrevPoint[1] != CurrentPoint[1])
+				{
+					// 다른 좌표이면
+					// 디렉션 데이터가 아닌 브랜치 데이터에서 가져와서 prevDirection을 설정해준다.
+					SpawnedWall->PrevDirection = this->BranchData[PrevPoint[0]][PrevPoint[1]];
+				}
+			}
+			this->PrevDirectionData[CurrentPoint[0]][CurrentPoint[1]] = SpawnedWall->PrevDirection;
 		} else
 		{
 			SpawnedWall->PrevDirection = -1;
+			this->PrevDirectionData[CurrentPoint[0]][CurrentPoint[1]] = -1;
 		}
-		SpawnedWall->MapType = this->MapData[LastPoint[0]][LastPoint[1]];
+		SpawnedWall->MapType = this->MapData[CurrentPoint[0]][CurrentPoint[1]];
+		SpawnedWall->XPos = CurrentPoint[0];
+		SpawnedWall->YPos = CurrentPoint[1];
 		SpawnedWall->SetDirection();
-		//UE_LOG(LogTemp, Log, TEXT("[%d,%d] Spawned at %s"), NextPoint[0], NextPoint[1], *SpawnLocation.ToString());
 	}
 }
 
 void ADigitalBleedGameMode::RestoreDungeonData()
 {
-	this->MyGameInstance->bIsDungeonBeRestored = false;
 	this->MapData = this->MyGameInstance->GetMapData();
 	this->DirectionData = this->MyGameInstance->GetDirectionData();
 	this->PrevDirectionData = this->MyGameInstance->GetPrevDirectionData();
+	this->BranchData = this->MyGameInstance->GetBranchData();
 }
 
 void ADigitalBleedGameMode::SpawnDungeonFromRestoredData()
@@ -157,15 +194,18 @@ void ADigitalBleedGameMode::SpawnDungeonFromRestoredData()
 					SpawnParams
 				);
 
-				Rooms[i][j] = SpawnedWall; 
-				SpawnedWall->Direction = this->DirectionData[i][j];
+				Rooms[i][j] = SpawnedWall;
+				SpawnedWall->XPos = i;
+				SpawnedWall->YPos = j;
+				
 				SpawnedWall->PrevDirection = this->PrevDirectionData[i][j];
 				SpawnedWall->MapType = this->MapData[i][j];
+				SpawnedWall->Direction = this->MapData[i][j]==5 ? this->BranchData[i][j] : this->DirectionData[i][j];
 				SpawnedWall->SetDirection();
 
-				if (this->BranchData[i][j] != -1)
+				if (this->MapData[i][j]==4 || this->MapData[i][j]==6)
 				{
-					Rooms[i][j]->ApplyBranch(this->BranchData[i][j]);
+					SpawnedWall->ApplyBranch(this->BranchData[i][j]);
 				}
 			}
 		}
@@ -218,18 +258,14 @@ void ADigitalBleedGameMode::GenerateCriticalPath(TArray<int32> PrevPoint, TArray
 		}
 	
 		this->DirectionData[LastPoint[0]][LastPoint[1]] = RandomDirection;
-		if (PrevPoint[0] >= 0)
-		{
-			this->PrevDirectionData[LastPoint[0]][LastPoint[1]] = this->DirectionData[PrevPoint[0]][PrevPoint[1]];
-		}
 
-		this->SpawnDungeonRoom(PrevPoint, LastPoint, NextPoint);
+		this->SpawnDungeonRoom(PrevPoint, LastPoint, false);
 	}
 
 	if (Length == 0)
 	{
 		this->MapData[LastPoint[0]][LastPoint[1]] = 3;
-		this->SpawnDungeonRoom(PrevPoint, LastPoint, LastPoint);
+		this->SpawnDungeonRoom(PrevPoint, LastPoint, false);
 	}
 
 	if (Length <= 0) return;
@@ -290,29 +326,29 @@ void ADigitalBleedGameMode::GenerateBranchPath(TArray<int32> PrevPoint, TArray<i
 		// 여기 코드 순서 바꾸면 좆됨..
 		this->MapData[NextPoint[0]][NextPoint[1]] = 6;
 		this->MapData[LastPoint[0]][LastPoint[1]] = 5;
-		this->DirectionData[LastPoint[0]][LastPoint[1]] = RandomDirection;
+		this->BranchData[LastPoint[0]][LastPoint[1]] = RandomDirection;
 
 		
 		if (PrevPoint[0] == LastPoint[0] && PrevPoint[1] == LastPoint[1])
 		{
 			Rooms[LastPoint[0]][LastPoint[1]]->ApplyBranch(RandomDirection);
-			BranchData[LastPoint[0]][LastPoint[1]] = RandomDirection;
+			this->MapData[LastPoint[0]][LastPoint[1]] = 4;
 		} else
 		{
-			this->SpawnDungeonRoom(PrevPoint, LastPoint, NextPoint);
+			this->SpawnDungeonRoom(PrevPoint, LastPoint, true);
 		}
 	}
 
 	if (Length == 0)
 	{
-		this->MapData[LastPoint[0]][LastPoint[1]] = 6;
+		
 		if (PrevPoint[0] == LastPoint[0] && PrevPoint[1] == LastPoint[1])
 		{
 			Rooms[LastPoint[0]][LastPoint[1]]->RestoreBranch();
-			BranchData[LastPoint[0]][LastPoint[1]] = -1;
 		} else
 		{
-			this->SpawnDungeonRoom(PrevPoint, LastPoint, NextPoint);
+			this->MapData[LastPoint[0]][LastPoint[1]] = 6;
+			this->SpawnDungeonRoom(PrevPoint, LastPoint, true);
 		}
 	}
 	
@@ -353,8 +389,15 @@ void ADigitalBleedGameMode::PostProcess()
 			if (this->MapData[i][j] == 2) // 만약 값이 2이면 시작점이므로
 			{
 				// 플레이어를 시작점에 위치시킨다!
-				FVector SpawnLocation = GMapRoomStartOffset + FVector(j * GTileSize, i * GTileSize, 100.0f);
-				FRotator SpawnRotation = FRotator::ZeroRotator;
+				FVector SpawnLocation =
+					this->MyGameInstance->bIsDungeonBeRestored ?
+						this->MyGameInstance->LastTransform.GetLocation() :
+						GMapRoomStartOffset + FVector(j * GTileSize, i * GTileSize, 100.0f);
+				
+				FRotator SpawnRotation =
+					this->MyGameInstance->bIsDungeonBeRestored ?
+						this->MyGameInstance->LastTransform.GetRotation().Rotator() : FRotator::ZeroRotator;
+				
 				//spawn current player at SpawnLocation
 				APlayerController* PC = GetWorld()->GetFirstPlayerController();
 				if (IsValid(PC))
@@ -377,6 +420,8 @@ void ADigitalBleedGameMode::PostProcess()
 
 	this->MyGameInstance->SetDungeonData(
 		this->MapData, this->DirectionData, this->PrevDirectionData, this->BranchData);
+
+	if (this->MyGameInstance->bIsDungeonBeRestored) this->MyGameInstance->bIsDungeonBeRestored = false;
 }
 
 void ADigitalBleedGameMode::BeginPlay()
@@ -396,10 +441,8 @@ void ADigitalBleedGameMode::BeginPlay()
 		this->GenerateMap();
 		this->GenerateCriticalPath({-1,-1},this->CriticalPathLastPoint, GCriticalPathLength);
 		this->GenerateBranches();
-		//this->PrintMapInfo();
 	}
-	
-
+	this->PrintMapInfo();
 	this->PostProcess();
 }
 
