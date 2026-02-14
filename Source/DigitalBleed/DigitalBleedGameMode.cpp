@@ -488,3 +488,7 @@ void ADigitalBleedGameMode::SpawnPlayers(const FTransform& SpawnTransform)
 		}
 	}
 }
+
+void ADigitalBleedGameMode::GoNextFloor()
+{
+}

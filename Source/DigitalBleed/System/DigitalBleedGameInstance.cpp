@@ -3,6 +3,7 @@
 
 #include "DigitalBleedGameInstance.h"
 
+#include "DigitalBleedGameMode.h"
 #include "Blueprint/UserWidget.h"
 #include "Data/StructModal.h"
 #include "Kismet/GameplayStatics.h"
@@ -220,6 +221,13 @@ void UDigitalBleedGameInstance::DoGlobalEvent(FString StringParameter)
 					this, WbpTriageClass, TEXT("Triage"));
 			}
 			if (!WbpTriage->IsInViewport()) WbpTriage->AddToViewport(Z_INDEX_TRIAGE);
+		}
+	} else if (StringParameter == "TriageExit")
+	{
+		ADigitalBleedGameMode* GM = Cast<ADigitalBleedGameMode>(GetWorld()->GetAuthGameMode());
+		if (IsValid(GM))
+		{
+			GM->GoNextFloor();
 		}
 	}
 }

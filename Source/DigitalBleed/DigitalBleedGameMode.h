@@ -71,6 +71,7 @@ public:
 	virtual void BeginPlay() override;
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	void SpawnPlayers(const FTransform& SpawnTransform);
+	void GoNextFloor();
 };
 
 
