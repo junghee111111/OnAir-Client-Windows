@@ -388,13 +388,13 @@ public:
 	TArray<int32> Dungeon_MaxFloors = {10,17,25,31,37,44};
 	
 	UPROPERTY(BlueprintReadWrite)
-	int32 Dungeon_Area = 0;
+	int32 Dungeon_Area = 1;
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 Dungeon_Floor = 1;
 	
 	UPROPERTY(BlueprintReadOnly)
-	float Threshold_SpawnShadow = 0.5;
+	float Threshold_SpawnShadow = 0.3;
 
 	UPROPERTY(BlueprintReadWrite)
 	bool bIsDungeonBeRestored = false;

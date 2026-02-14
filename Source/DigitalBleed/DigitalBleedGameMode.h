@@ -63,6 +63,8 @@ protected:
 	UPROPERTY()
 	TArray<AActor*> PartyMembers;
 
+	UPROPERTY(BlueprintReadOnly)
+	bool bStopAllMovement = false;
 
 public:
 	
@@ -72,6 +74,7 @@ public:
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	void SpawnPlayers(const FTransform& SpawnTransform);
 	void GoNextFloor();
+	
 };
 
 

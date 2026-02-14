@@ -222,7 +222,7 @@ void UDigitalBleedGameInstance::DoGlobalEvent(FString StringParameter)
 			}
 			if (!WbpTriage->IsInViewport()) WbpTriage->AddToViewport(Z_INDEX_TRIAGE);
 		}
-	} else if (StringParameter == "TriageExit")
+	} else if (StringParameter == "NextFloor")
 	{
 		ADigitalBleedGameMode* GM = Cast<ADigitalBleedGameMode>(GetWorld()->GetAuthGameMode());
 		if (IsValid(GM))

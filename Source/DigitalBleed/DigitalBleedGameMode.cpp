@@ -491,4 +491,20 @@ void ADigitalBleedGameMode::SpawnPlayers(const FTransform& SpawnTransform)
 
 void ADigitalBleedGameMode::GoNextFloor()
 {
+	this->bStopAllMovement = true;
+	FTimerHandle TimerHandle;
+	GetWorldTimerManager().SetTimer(TimerHandle,
+		[this]() { this->MyGameInstance->Dungeon_Floor++;}
+	, 1.0f, false);
+
+	UWorld* World = GetWorld();
+	if (World && this->MyGameInstance)
+	{
+		FString CurrentLevelName = World->GetMapName();
+		CurrentLevelName.RemoveFromStart(World->StreamingLevelsPrefix);
+			
+		// GameInstance의 JustOpenMap 사용 (로딩 스크린 포함)
+		this->MyGameInstance->JustOpenMap(FName(*CurrentLevelName));
+	}
+	
 }
