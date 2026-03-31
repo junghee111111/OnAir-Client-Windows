@@ -3,6 +3,13 @@
 
 #include "MyPlayerState.h"
 
+namespace LifeStatConstants
+{
+	constexpr int32 IntelMaxExpTable[] = { 0, 5, 7, 9, 11 }; // 인덱스 0은 사용 안함, 레벨 1~4
+	constexpr int32 MaxLevel = 4;
+}
+
+
 AMyPlayerState::AMyPlayerState()
 {
 	this->MoneyBTC = 0.0f;
@@ -23,4 +30,79 @@ AMyPlayerState::AMyPlayerState()
 void AMyPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+}
+
+bool AMyPlayerState::IncIntel()
+{
+	// 최대 레벨 체크
+	if (this->LStat_Intel > LifeStatConstants::MaxLevel)
+	{
+		return false;
+	}
+	
+	// 현재 레벨의 maxExp 가져오기
+	const int32 maxExp = LifeStatConstants::IntelMaxExpTable[this->LStat_Intel];
+	
+	// 경험치 증가
+	this->LStat_Intel_Exp++;
+	
+	// maxExp를 넘으면 레벨업
+	if (this->LStat_Intel_Exp > maxExp)
+	{
+		this->LStat_Intel++;
+		this->LStat_Intel_Exp = 0; // 경험치 초기화
+		return true;
+	}
+	
+	return false;
+}
+
+bool AMyPlayerState::IncCharm()
+{
+	// 최대 레벨 체크
+	if (this->LStat_Charm > LifeStatConstants::MaxLevel)
+	{
+		return false;
+	}
+	
+	// 현재 레벨의 maxExp 가져오기
+	const int32 maxExp = LifeStatConstants::IntelMaxExpTable[this->LStat_Charm];
+	
+	// 경험치 증가
+	this->LStat_Charm_Exp++;
+	
+	// maxExp를 넘으면 레벨업
+	if (this->LStat_Charm_Exp > maxExp)
+	{
+		this->LStat_Charm++;
+		this->LStat_Charm_Exp = 0; // 경험치 초기화
+		return true;
+	}
+	
+	return false;
+}
+
+bool AMyPlayerState::IncBrave()
+{
+	// 최대 레벨 체크
+	if (this->LStat_Brave > LifeStatConstants::MaxLevel)
+	{
+		return false;
+	}
+	
+	// 현재 레벨의 maxExp 가져오기
+	const int32 maxExp = LifeStatConstants::IntelMaxExpTable[this->LStat_Brave];
+	
+	// 경험치 증가
+	this->LStat_Brave_Exp++;
+	
+	// maxExp를 넘으면 레벨업
+	if (this->LStat_Brave_Exp > maxExp)
+	{
+		this->LStat_Brave++;
+		this->LStat_Brave_Exp = 0; // 경험치 초기화
+		return true;
+	}
+	
+	return false;
 }

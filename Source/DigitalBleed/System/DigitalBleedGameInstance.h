@@ -19,7 +19,9 @@
 #include "UI/WidgetMainMenu.h"
 #include "UI/WidgetModal.h"
 #include "UI/WidgetTriage.h"
+#include "UI/FX/WidgetFxLifeStatUp.h"
 #include "UI/MainHud/WidgetMainHud.h"
+#include "UI/Menu/WidgetMenuLifeStat.h"
 #include "DigitalBleedGameInstance.generated.h"
 
 class ADungeonRoom;
@@ -100,6 +102,16 @@ protected:
 	UWidgetTriage* WbpTriage = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI")
 	TSubclassOf<UWidgetTriage> WbpTriageClass;
+
+	UPROPERTY()
+	UWidgetFxLifeStatUp* WbpFxLifeStatUp = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI")
+	TSubclassOf<UWidgetFxLifeStatUp> WbpFxLifeStatUpClass;
+
+	UPROPERTY()
+	UWidgetMenuLifeStat* WbpMenuLifeStat = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI")
+	TSubclassOf<UWidgetMenuLifeStat> WbpMenuLifeStatClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
 	UDataTable* DT_Modal = nullptr;
@@ -380,6 +392,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	float GetMoneyBtc() const { return Money_Btc; }
 
+	
 	UFUNCTION(BlueprintCallable)
 	int32 GetMoneyWon() const { return Money_Won; }
 

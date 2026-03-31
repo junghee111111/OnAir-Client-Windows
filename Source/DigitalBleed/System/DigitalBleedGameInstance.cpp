@@ -21,8 +21,12 @@
 constexpr int32 Z_INDEX_LOADING_SCREEN_FAKER = 100;
 constexpr int32 Z_INDEX_GLOBAL_TOAST = 90;
 constexpr int32 Z_INDEX_MODAL = 50;
+
+
 constexpr int32 Z_INDEX_DIALOG = 40;
 constexpr int32 Z_INDEX_DIALOG_SELECTION = 45;
+constexpr int32 Z_INDEX_FX = 35;
+constexpr int32 Z_INDEX_MENU = 36;
 constexpr int32 Z_INDEX_TRIAGE = 31;
 constexpr int32 Z_INDEX_MAIN_HUD = 30;
 constexpr int32 DungeonMapWidth = 20;
@@ -228,6 +232,77 @@ void UDigitalBleedGameInstance::DoGlobalEvent(FString StringParameter)
 		if (IsValid(GM))
 		{
 			GM->GoNextFloor();
+		}
+	} else if (StringParameter == "IncJihye" || StringParameter == "IncYongi" || StringParameter == "IncCharm")
+	{
+		if (!this->WbpFxLifeStatUp)
+		{
+			this->WbpFxLifeStatUp = CreateWidget<class UWidgetFxLifeStatUp>(
+						this, WbpFxLifeStatUpClass);
+			if (!WbpFxLifeStatUp->IsInViewport()) WbpFxLifeStatUp->AddToViewport(Z_INDEX_FX);
+		}
+		this->WbpFxLifeStatUp->PlayAnimInit();
+
+		bool bIsLevelUp = false;
+		if (StringParameter == "IncJihye")
+		{
+			bIsLevelUp = this->SavedPlayerState->IncIntel();
+		} else if (StringParameter == "IncYongi")
+		{
+			bIsLevelUp = this->SavedPlayerState->IncBrave();
+		} else if (StringParameter == "IncCharm")
+		{
+			bIsLevelUp = this->SavedPlayerState->IncCharm();
+		}
+		
+		if (bIsLevelUp)
+		{
+			FTimerHandle Th;
+			this->GetTimerManager().SetTimer(Th, [this,StringParameter]
+			{
+				if (!this->WbpMenuLifeStat)
+				{
+					this->WbpMenuLifeStat = CreateWidget<class UWidgetMenuLifeStat>(
+						this, WbpMenuLifeStatClass, TEXT("MenuLifeStat"));
+					if (!WbpMenuLifeStat->IsInViewport()) WbpMenuLifeStat->AddToViewport(Z_INDEX_MENU);
+					this->WbpMenuLifeStat->PlayAnimInit();
+					this->WbpMenuLifeStat->PlayAnimStatsUp();
+
+					if (StringParameter == "IncJihye")
+					{
+						this->WbpMenuLifeStat->PlayAnimAcademicUp();
+					} else if (StringParameter == "IncYongi")
+					{
+						this->WbpMenuLifeStat->PlayAnimBraveUp();
+					} else if (StringParameter == "IncCharm")
+					{
+						this->WbpMenuLifeStat->PlayAnimCharmUp();
+					}
+				}
+			}, 1.0f, false);
+			FTimerHandle Th2;
+			this->GetTimerManager().SetTimer(Th2, [this,StringParameter]
+			{
+				if (StringParameter == "IncJihye")
+				{
+					this->ShowDialog(this->FindDialogByRowName(FName("Jihye_LvUp")));
+				} else if (StringParameter == "IncYongi")
+				{
+					this->ShowDialog(this->FindDialogByRowName(FName("Brave_LvUp")));
+				} else if (StringParameter == "IncCharm")
+				{
+					this->ShowDialog(this->FindDialogByRowName(FName("Charm_LvUp")));
+				}
+				
+			}, 2.5f, false);
+		}
+	}
+	else if (StringParameter == "CloseLifeStatMenu")
+	{
+		if (this->WbpMenuLifeStat)
+		{
+			this->WbpMenuLifeStat->PlayAnimInitReverse();
+			this->WbpMenuLifeStat->PlayAnimStatsUpReverse();
 		}
 	}
 }

@@ -18,6 +18,25 @@ public:
 	AMyPlayerState();
 
 protected:
+	// Life Stats
+	UPROPERTY(BlueprintReadWrite, Category = "Life Stats")
+	int32 LStat_Intel = 1;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Life Stats")
+	int32 LStat_Charm = 1;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Life Stats")
+	int32 LStat_Brave = 1;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Life Stats")
+	int32 LStat_Intel_Exp = 0;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Life Stats")
+	int32 LStat_Charm_Exp = 0;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Life Stats")
+	int32 LStat_Brave_Exp = 0;
+	
 	// 플레이어 스탯
 	UPROPERTY(BlueprintReadWrite, Replicated, Category = "Stats")
 	int32 Stat_STR;
@@ -66,6 +85,8 @@ protected:
 	UPROPERTY(BlueprintReadWrite, Replicated, Category = "Money")
 	float MoneyBTC;
 
+	
+
 public:
 	// Replication 설정
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -75,4 +96,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	float GetMoneyBTC() const { return MoneyBTC; }
+
+	UFUNCTION()
+	bool IncIntel();
+	bool IncCharm();
+	bool IncBrave();
 };
