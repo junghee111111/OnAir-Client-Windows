@@ -15,14 +15,15 @@
 #include "Runtime/LevelSequence/Public/LevelSequenceDirector.h"
 #include "Runtime/LevelSequence/Public/LevelSequencePlayer.h"
 #include "MovieSceneSequencePlayer.h" 
+#include "SaveGameEternalHighschool.h"
 #include "Data/StructExpTable.h"
 #include "UI/WidgetToast.h"
+
+constexpr int32 MAX_SAVE_SLOTS = 15;
 
 constexpr int32 Z_INDEX_LOADING_SCREEN_FAKER = 100;
 constexpr int32 Z_INDEX_GLOBAL_TOAST = 90;
 constexpr int32 Z_INDEX_MODAL = 50;
-
-
 constexpr int32 Z_INDEX_DIALOG = 40;
 constexpr int32 Z_INDEX_DIALOG_SELECTION = 45;
 constexpr int32 Z_INDEX_FX = 35;
@@ -123,6 +124,36 @@ void UDigitalBleedGameInstance::EndLoadingScreen(UWorld* InLoadedWorld)
 			this->WbpLoadingScreenFaker->Hide();
 		}, 2.0f, false);
 	}
+}
+
+void UDigitalBleedGameInstance::DoSave(int32 Slot)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[GameInstance] : Save"));
+	if (Slot < 0 || Slot > MAX_SAVE_SLOTS)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[GameInstance] : Invalid save Slot provided!"));
+		return;
+	}
+
+	USaveGameEternalHighschool* SaveGame = NewObject<USaveGameEternalHighschool>(this);
+	this->SavedPlayerState->SetDayInfo(this->Month, this->Day, this->Hour, this->Yoil);
+	
+	SaveGame->CopyFrom(this->SavedPlayerState);
+
+	// 슬롯 이름 생성
+	FString SlotName = FString::Printf(TEXT("SaveSlot_%d"), Slot);
+	
+	// 저장 실행
+	if (UGameplayStatics::SaveGameToSlot(SaveGame, SlotName, 0))
+	{
+		this->ShowToast(FText::FromString("SAVED"));
+		UE_LOG(LogTemp, Log, TEXT("[GameInstance] : Game saved successfully to Slot %d"), Slot);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("[GameInstance] : Failed to save game to Slot %d"), Slot);
+	}
+	
 }
 
 void UDigitalBleedGameInstance::DoGlobalEvent(FString StringParameter)
@@ -305,6 +336,10 @@ void UDigitalBleedGameInstance::DoGlobalEvent(FString StringParameter)
 			this->WbpMenuLifeStat->PlayAnimStatsUpReverse();
 		}
 	}
+	else if (StringParameter == "Save")
+	{
+		this->DoSave(this->SelectedSaveSlot);
+	}
 }
 
 void UDigitalBleedGameInstance::ShowMainHud()
@@ -350,6 +385,20 @@ void UDigitalBleedGameInstance::JustOpenMap(FName MapName)
 	this->FakeLoadingScreenInit();
 	this->WbpLoadingScreenFaker->Show();
 	FTimerHandle TimerHandle;
+
+	// clear and delete UIs
+	if (this->WbpFxLifeStatUp)
+	{
+		this->WbpFxLifeStatUp->RemoveFromParent();
+		this->WbpFxLifeStatUp = nullptr;
+	}
+
+	if (WbpMenuLifeStat)
+	{
+		this->WbpMenuLifeStat->RemoveFromParent();
+		this->WbpMenuLifeStat = nullptr;
+	}
+	
 	this->GetTimerManager().SetTimer(TimerHandle, [this,MapName]()
 	{
 		UGameplayStatics::OpenLevel(this, MapName);

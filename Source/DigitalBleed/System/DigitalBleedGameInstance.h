@@ -185,6 +185,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	int32 Hour = 0;
 
+	UPROPERTY(BlueprintReadWrite)
+	int32 SelectedSaveSlot = -1;
+
 
 	UPROPERTY()
 	TObjectPtr<AMyPlayerState> SavedPlayerState;
@@ -262,6 +265,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnGlobalEvent OnCycleChanged;
 
+	UFUNCTION(BlueprintCallable)
+	void DoSave(int32 Slot);
+	
 	UFUNCTION(BlueprintCallable)
 	void DoGlobalEvent(FString StringParameter);
 

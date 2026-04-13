@@ -32,6 +32,14 @@ void AMyPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 }
 
+void AMyPlayerState::SetDayInfo(int32 NewMonth, int32 NewDay, int32 NewCycle, int32 NewYoil)
+{
+	this->Month = NewMonth;
+	this->Day = NewDay;
+	this->Cycle = NewCycle;
+	this->Yoil = NewYoil;
+}
+
 bool AMyPlayerState::IncIntel()
 {
 	// 최대 레벨 체크
@@ -47,7 +55,7 @@ bool AMyPlayerState::IncIntel()
 	this->LStat_Intel_Exp++;
 	
 	// maxExp를 넘으면 레벨업
-	if (this->LStat_Intel_Exp > maxExp)
+	if (this->LStat_Intel_Exp >= maxExp)
 	{
 		this->LStat_Intel++;
 		this->LStat_Intel_Exp = 0; // 경험치 초기화
@@ -72,7 +80,7 @@ bool AMyPlayerState::IncCharm()
 	this->LStat_Charm_Exp++;
 	
 	// maxExp를 넘으면 레벨업
-	if (this->LStat_Charm_Exp > maxExp)
+	if (this->LStat_Charm_Exp >= maxExp)
 	{
 		this->LStat_Charm++;
 		this->LStat_Charm_Exp = 0; // 경험치 초기화
@@ -97,7 +105,7 @@ bool AMyPlayerState::IncBrave()
 	this->LStat_Brave_Exp++;
 	
 	// maxExp를 넘으면 레벨업
-	if (this->LStat_Brave_Exp > maxExp)
+	if (this->LStat_Brave_Exp >= maxExp)
 	{
 		this->LStat_Brave++;
 		this->LStat_Brave_Exp = 0; // 경험치 초기화

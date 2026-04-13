@@ -85,6 +85,18 @@ protected:
 	UPROPERTY(BlueprintReadWrite, Replicated, Category = "Money")
 	float MoneyBTC;
 
+	UPROPERTY(BlueprintReadWrite, Replicated, Category = "Date")
+	int32 Month;
+
+	UPROPERTY(BlueprintReadWrite, Replicated, Category = "Date")
+	int32 Day;
+
+	UPROPERTY(BlueprintReadWrite, Replicated, Category = "Date")
+	int32 Yoil;
+
+	UPROPERTY(BlueprintReadWrite, Replicated, Category = "Date")
+	int32 Cycle;
+
 	
 
 public:
@@ -96,6 +108,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	float GetMoneyBTC() const { return MoneyBTC; }
+
+	UFUNCTION()
+	void SetDayInfo(int32 NewMonth, int32 NewDay, int32 NewCycle, int32 NewYoil);
 
 	UFUNCTION()
 	bool IncIntel();

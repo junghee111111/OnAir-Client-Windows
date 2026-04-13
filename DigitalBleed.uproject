@@ -38,6 +38,10 @@
 		{
 			"Name": "USDCore",
 			"Enabled": true
+		},
+		{
+			"Name": "DataCharts",
+			"Enabled": true
 		}
 	]
 }
