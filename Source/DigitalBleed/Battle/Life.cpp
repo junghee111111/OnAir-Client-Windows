@@ -191,7 +191,7 @@ void ALife::ExecSkillMontages()
 			this->AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, this->MontagePhysAttack3);
 		}
 		break;
-	default:
+	default: // 물리공격
 		this->MyGameMode->CameraSee_SkillTarget_Angle4();
 		if (IsValid(this->CurrentSkill.PreEffect))
 		{
@@ -226,14 +226,17 @@ void ALife::ExecSkillMontages()
 		{
 			if (IsValid(this->CurrentSkill.HitEffect))
 			{
-				UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-					GetWorld(),
-					this->CurrentSkill.HitEffect,
-					this->MyGameMode->GetSkillTarget()->GetActorLocation(),
-					this->GetActorRotation(),
-					FVector(0.5f),
-					true
-				);
+				for (ALife* Target : this->MyGameMode->GetSkillTarget())
+				{
+					UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+						GetWorld(),
+						this->CurrentSkill.HitEffect,
+						Target->GetActorLocation(),
+						this->GetActorRotation(),
+						FVector(0.5f),
+						true
+					);
+				}
 			}
 			this->MyGameMode->ApplyDamage();
 		},0.5f, false);
@@ -295,14 +298,17 @@ void ALife::Tick(float DeltaTime)
 
 void ALife::ExecSkill(TArray<ALife*> Targets, FRowSkill Skill, FRowSkillRecord SkillRecord)
 {
-	if (!IsValid(TargetLife)) return;
+	if (Targets.Num() <= 0) return;
 	
 	this->CurrentSkill = Skill;
 	this->CurrentSkillRecord = SkillRecord;
 
-	// 타겟을 바라보도록 회전
-	FRotator LookAtRotation = (TargetLife->GetActorLocation() - GetActorLocation()).Rotation();
-	SetActorRotation(FRotator(0, LookAtRotation.Yaw, 0));
+	// 단일 대상 공격이면, 타겟을 바라보도록 회전
+	if (Targets.Num() == 1)
+	{
+		FRotator LookAtRotation = (Targets[0]->GetActorLocation() - GetActorLocation()).Rotation();
+		SetActorRotation(FRotator(0, LookAtRotation.Yaw, 0));
+	}
 
 	this->LifeStatComponent->ManipulateHp(Skill.CostHP*-1);
 	this->LifeStatComponent->ManipulateHb(Skill.CostHb*-1);
@@ -316,14 +322,18 @@ void ALife::ExecSkill(TArray<ALife*> Targets, FRowSkill Skill, FRowSkillRecord S
 		// 원래 위치 저장
 		this->OriginalLocation = GetActorLocation();
 	
-		// 타겟 위치 설정 (타겟 앞쪽으로 약간 떨어진 위치)
-		FVector Direction = (TargetLife->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-		this->TargetLocation = TargetLife->GetActorLocation() - Direction * 100.0f;
-		
-		if (IsValid(this->MontageRun) && IsValid(this->AnimInstance))
+		// 단일 대상이면 타켓 앞으로 뛰어가게 한다. (타겟 앞쪽으로 약간 떨어진 위치)
+		if (Targets.Num() == 1)
 		{
-			this->AnimInstance->Montage_Play(this->MontageRun,1.0f);
+			FVector Direction = (Targets[0]->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+			this->TargetLocation = Targets[0]->GetActorLocation() - Direction * 100.0f;
+		
+			if (IsValid(this->MontageRun) && IsValid(this->AnimInstance))
+			{
+				this->AnimInstance->Montage_Play(this->MontageRun,1.0f);
+			}
 		}
+		
 	} else // 마법계 스킬 시전
 	{
 		if (IsValid(this->MontageSuicide) && IsValid(this->AnimInstance))
