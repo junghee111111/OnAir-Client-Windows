@@ -1096,7 +1096,7 @@ void ABattleGameMode::DeleteFromOrderedList(FString TmpCode)
 	
 	if (!this->DeadList.Contains(TmpCode))
 	{
-		UE_LOG(LogTemp,Log,TEXT("[BattleGameMode] : %s (%s) DEAD. add to dead list."),*this->CurrentSkillTargets->GetName(), *TmpCode);
+		//UE_LOG(LogTemp,Log,TEXT("[BattleGameMode] : %s (%s) DEAD. add to dead list."),*this->CurrentSkillTargets->GetName(), *TmpCode);
 		this->DeadList.Add(TmpCode);
 	}else
 	{
