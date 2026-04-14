@@ -106,14 +106,22 @@ protected:
 
 	UPROPERTY()
 	ABattleGameMode* MyGameMode = nullptr;
+
+	UFUNCTION()
+	void LaunchProjectileToTarget(ALife* Life);
+
+	bool UpdateProjectileMovement(UNiagaraComponent* Projectile, const FVector& StartLocation, const FVector& EndLocation, float Duration, TSharedPtr<float> ElapsedTime);
+
+	void CleanupProjectile(UNiagaraComponent* Projectile, TSharedPtr<FTimerHandle> TimerHandle);
 	
 
 public:
 	void OnSkillMontageEnded(UAnimMontage* AnimMontage, bool bArg);
+	
 	void ExecSkillMontages();
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	void ExecSkill(ALife* TargetLife, FRowSkill Skill, FRowSkillRecord SkillRecord);
+	void ExecSkill(TArray<ALife*> Targets, FRowSkill Skill, FRowSkillRecord SkillRecord);
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	ULifeEquipComponent* LifeEquipComponent;

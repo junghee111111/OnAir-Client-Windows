@@ -108,10 +108,10 @@ protected:
 	FString CurrentTurnTarget = "";
 
 	UPROPERTY(BlueprintReadOnly)
-	ALife* CurrentSkillTarget = nullptr;
+	TArray<ALife*> CurrentSkillTargets = {};
 
 	UPROPERTY(BlueprintReadOnly)
-	ALife* CurrentItemTarget = nullptr;
+	TArray<ALife*> CurrentItemTargets = {};
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 TurnCount = 0;
@@ -142,6 +142,9 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly)
 	AActor* LockOnIndicator = nullptr;
+
+	UPROPERTY(BlueprintReadOnly)
+	TArray<AActor*> LockOnIndicators = {};
 
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FTimerHandle> IonTimerHandles = {};
@@ -179,6 +182,9 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void StartSelectEnemyMode();
+
+	UFUNCTION(BlueprintCallable)
+	void StartSelectAllEnemy();
 
 	UFUNCTION(BlueprintCallable)
 	void SelectNextEnemy();
@@ -277,7 +283,10 @@ public:
 	void CameraSee_SkillTarget_Angle4();
 
 	UFUNCTION()
-	ALife* GetSkillTarget() const { return this->CurrentSkillTarget; }
+	TArray<ALife*> GetSkillTarget() const { return this->CurrentSkillTargets; }
+
+	UFUNCTION()
+	TArray<ALife*> GetAllAliveEnemies();
 
 	UFUNCTION(BlueprintCallable)
 	void EndSkill();

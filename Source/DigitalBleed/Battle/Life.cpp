@@ -69,6 +69,86 @@ void ALife::BeginPlay()
 	}
 }
 
+void ALife::LaunchProjectileToTarget(ALife* Target)
+{
+	if (!IsValid(Target) || !IsValid(this->CurrentSkill.ProjectileEffect))
+	{
+		return;
+	}
+
+	UNiagaraComponent* Projectile = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		GetWorld(),
+		this->CurrentSkill.ProjectileEffect,
+		this->GetActorLocation(),
+		this->GetActorRotation(),
+		FVector(1.0f),
+		false
+	);
+
+	if (!Projectile)
+	{
+		return;
+	}
+
+	const FVector StartLocation = this->GetActorLocation();
+	const FVector EndLocation = Target->GetActorLocation();
+	constexpr float Duration = 0.5f;
+
+	TSharedPtr<FTimerHandle> TimerHandle = MakeShared<FTimerHandle>();
+	TSharedPtr<float> ElapsedTime = MakeShared<float>(0.0f);
+
+	GetWorldTimerManager().SetTimer(
+		*TimerHandle,
+		[this, Projectile, StartLocation, EndLocation, Duration, ElapsedTime, TimerHandle]() mutable
+		{
+			if (!UpdateProjectileMovement(Projectile, StartLocation, EndLocation, Duration, ElapsedTime))
+			{
+				CleanupProjectile(Projectile, TimerHandle);
+			}
+		},
+		GetWorld()->GetDeltaSeconds(),
+		true
+	);
+}
+
+bool ALife::UpdateProjectileMovement(
+	UNiagaraComponent* Projectile,
+	const FVector& StartLocation,
+	const FVector& EndLocation,
+	float Duration,
+	TSharedPtr<float> ElapsedTime)
+{
+	*ElapsedTime += GetWorld()->GetDeltaSeconds();
+	const float Alpha = FMath::Clamp(*ElapsedTime / Duration, 0.0f, 1.0f);
+
+	if (!Projectile->IsValidLowLevel() || !Projectile->IsRegistered())
+	{
+		return false;
+	}
+
+	const FVector NewLocation = FMath::Lerp(StartLocation, EndLocation, Alpha);
+	Projectile->SetWorldLocation(NewLocation);
+
+	const FRotator NewRotation = (EndLocation - NewLocation).Rotation();
+	Projectile->SetWorldRotation(NewRotation);
+
+	return Alpha < 1.0f;
+}
+
+void ALife::CleanupProjectile(
+	UNiagaraComponent* Projectile,
+	TSharedPtr<FTimerHandle> TimerHandle)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Projectile Timer Ended"));
+	
+	GetWorldTimerManager().ClearTimer(*TimerHandle);
+	
+	if (Projectile && Projectile->IsValidLowLevel())
+	{
+		Projectile->DestroyComponent();
+	}
+}
+
 void ALife::OnSkillMontageEnded(UAnimMontage* AnimMontage, bool bArg)
 {
 	this->AnimInstance->StopAllMontages(0.25f);
@@ -126,54 +206,18 @@ void ALife::ExecSkillMontages()
 		}
 		if (IsValid(this->CurrentSkill.ProjectileEffect))
 		{
-			UNiagaraComponent* Projectile = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-				GetWorld(),
-				this->CurrentSkill.ProjectileEffect,
-				this->GetActorLocation(),
-				this->GetActorRotation(),
-				FVector(1.0f),
-				false
-			);
-			ALife* Target = this->MyGameMode->GetSkillTarget();
-			// throw Projectile to Target
-
-			if (Projectile && IsValid(Target))
+			if (IsValid(this->CurrentSkill.ProjectileEffect))
 			{
-				FVector StartLocation = this->GetActorLocation();
-				FVector EndLocation = Target->GetActorLocation();
-				float Duration = 0.5f;
-				
-				TSharedPtr<FTimerHandle> ProjectileTimerHandle = MakeShared<FTimerHandle>();
-				TSharedPtr<float> ElapsedTime = MakeShared<float>(0.0f);
+				TArray<ALife*> Targets = this->CurrentSkill.bIsAllAttack 
+					? this->MyGameMode->GetAllAliveEnemies() 
+					: TArray<ALife*>{ this->MyGameMode->GetSkillTarget() };
 
-				GetWorldTimerManager().SetTimer(*ProjectileTimerHandle, [this, Projectile, StartLocation, EndLocation, Duration, ElapsedTime, ProjectileTimerHandle]() mutable
+				for (ALife* Target : Targets)
 				{
-					*ElapsedTime += GetWorld()->GetDeltaSeconds();
-					float Alpha = FMath::Clamp(*ElapsedTime / Duration, 0.0f, 1.0f);
+					if (!IsValid(Target)) continue;
 
-					if (Projectile->IsValidLowLevel() && Projectile->IsRegistered())
-					{
-						FVector NewLocation = FMath::Lerp(StartLocation, EndLocation, Alpha);
-						Projectile->SetWorldLocation(NewLocation);
-			
-						// 목표 방향으로 회전
-						FRotator NewRotation = (EndLocation - NewLocation).Rotation();
-						Projectile->SetWorldRotation(NewRotation);
-					}
-					
-		
-					// 1초가 지나면 타이머 정지 및 Projectile 제거
-					if (Alpha >= 1.0f || !Projectile->IsValidLowLevel())
-					{
-						UE_LOG(LogTemp, Warning, TEXT("Projectile Timer Ended"));
-						GetWorldTimerManager().ClearTimer(*ProjectileTimerHandle);
-						if (Projectile->IsValidLowLevel())
-						{
-							Projectile->DestroyComponent();
-							Projectile = nullptr;
-						}
-					}
-				}, GetWorld()->GetDeltaSeconds(), true);
+					LaunchProjectileToTarget(Target);
+				}
 			}
 		}
 
@@ -249,7 +293,7 @@ void ALife::Tick(float DeltaTime)
 	}
 }
 
-void ALife::ExecSkill(ALife* TargetLife, FRowSkill Skill, FRowSkillRecord SkillRecord)
+void ALife::ExecSkill(TArray<ALife*> Targets, FRowSkill Skill, FRowSkillRecord SkillRecord)
 {
 	if (!IsValid(TargetLife)) return;
 	
@@ -282,7 +326,7 @@ void ALife::ExecSkill(ALife* TargetLife, FRowSkill Skill, FRowSkillRecord SkillR
 		}
 	} else // 마법계 스킬 시전
 	{
-		if (IsValid(this->MontageRun) && IsValid(this->AnimInstance))
+		if (IsValid(this->MontageSuicide) && IsValid(this->AnimInstance))
 		{
 			float MontageLength = this->AnimInstance->Montage_Play(
 				this->MontageSuicide,1.0f, EMontagePlayReturnType::MontageLength,

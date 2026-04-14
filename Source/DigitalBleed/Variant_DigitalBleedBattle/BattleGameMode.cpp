@@ -451,7 +451,7 @@ void ABattleGameMode::CameraSee_SkillTarget_Angle1()
 	ALifeHuman* CurrentTurnLife = AccessLifeByPlayerCode(CurrentTurnTarget);
 	if (IsValid(CurrentTurnLife))
 	{
-		this->MainCam->SeePlayerBackToEnemy_Angle1(CurrentTurnLife->GetActorLocation(), this->CurrentSkillTarget->GetActorLocation());
+		this->MainCam->SeePlayerBackToEnemy_Angle1(CurrentTurnLife->GetActorLocation(), this->CurrentSkillTargets[0]->GetActorLocation());
 	}
 }
 
@@ -460,7 +460,7 @@ void ABattleGameMode::CameraSee_SkillTarget_Angle2()
 	ALifeHuman* CurrentTurnLife = AccessLifeByPlayerCode(CurrentTurnTarget);
 	if (IsValid(CurrentTurnLife))
 	{
-		this->MainCam->SeePlayerBackToEnemy_Angle2(CurrentTurnLife->GetActorLocation(), this->CurrentSkillTarget->GetActorLocation());
+		this->MainCam->SeePlayerBackToEnemy_Angle2(CurrentTurnLife->GetActorLocation(), this->CurrentSkillTargets[0]->GetActorLocation());
 	}
 }
 
@@ -469,7 +469,7 @@ void ABattleGameMode::CameraSee_SkillTarget_Angle3()
 	ALifeHuman* CurrentTurnLife = AccessLifeByPlayerCode(CurrentTurnTarget);
 	if (IsValid(CurrentTurnLife))
 	{
-		this->MainCam->SeePlayerBackToEnemy_Angle3(CurrentTurnLife->GetActorLocation(), this->CurrentSkillTarget->GetActorLocation());
+		this->MainCam->SeePlayerBackToEnemy_Angle3(CurrentTurnLife->GetActorLocation(), this->CurrentSkillTargets[0]->GetActorLocation());
 	}
 }
 
@@ -478,7 +478,7 @@ void ABattleGameMode::CameraSee_SkillTarget_Angle4()
 	ALifeHuman* CurrentTurnLife = AccessLifeByPlayerCode(CurrentTurnTarget);
 	if (IsValid(CurrentTurnLife))
 	{
-		this->MainCam->SeePlayerBackToEnemy_Angle3(this->CurrentSkillTarget->GetActorLocation(),CurrentTurnLife->GetActorLocation());
+		this->MainCam->SeePlayerBackToEnemy_Angle3(this->CurrentSkillTargets[0]->GetActorLocation(),CurrentTurnLife->GetActorLocation());
 	}
 }
 
@@ -494,7 +494,7 @@ void ABattleGameMode::StartSelectEnemyMode()
 		FirstPC->bShowMouseCursor = false;
 		ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
 		ALifeEnemy* SelectedEnemyLife = Enemies[SelectedEnemy];
-		this->CurrentSkillTarget = SelectedEnemyLife;
+		this->CurrentSkillTargets = {SelectedEnemyLife};
 
 		if (IsValid(SelectedEnemyLife))
 		{
@@ -510,6 +510,27 @@ void ABattleGameMode::StartSelectEnemyMode()
 		} else
 		{
 			UE_LOG(LogTemp,Error,TEXT("[BattleGameMode::StartSelectEnemyMode] Invalid SelectedEnemyLife"))
+		}
+	}
+}
+
+void ABattleGameMode::StartSelectAllEnemy()
+{
+	this->bEnemySelectMode = true;
+	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
+	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
+	if (IsValid(GI))
+	{
+		ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
+		this->MainCam->SeePlayerBackToEnemy(CurrentLife->GetActorLocation(), FVector::Zero());
+		
+		for (ALifeEnemy* Enemy : Enemies)
+		{
+			if (Enemy->LifeStatComponent->GetHp() <= 0) continue;
+			if (IsValid(Enemy)) Enemy->ShowHpBar();
+			AActor* Indicator = GetWorld()->SpawnActor(LockOnIndicatorClass);
+			if (IsValid(Indicator)) Indicator->SetActorLocation(Enemy->GetActorLocation());
+			this->LockOnIndicators.Add(Indicator);
 		}
 	}
 }
@@ -532,7 +553,7 @@ void ABattleGameMode::SelectNextEnemy()
 	ALifeEnemy* SelectedEnemyLife = Enemies[SelectedEnemy];
 	if (!IsValid(SelectedEnemyLife)) return;
 	this->MainCam->SeePlayerBackToEnemy(CurrentLife->GetActorLocation(), SelectedEnemyLife->GetActorLocation());
-	this->CurrentSkillTarget = SelectedEnemyLife;
+	this->CurrentSkillTargets = {SelectedEnemyLife};
 
 	if (IsValid(this->LockOnIndicator)) this->LockOnIndicator->SetActorLocation(SelectedEnemyLife->GetActorLocation());
 }
@@ -556,7 +577,7 @@ void ABattleGameMode::SelectPrevEnemy()
 	ALifeEnemy* SelectedEnemyLife = Enemies[SelectedEnemy];
 	if (!IsValid(SelectedEnemyLife)) return;
 	this->MainCam->SeePlayerBackToEnemy(CurrentLife->GetActorLocation(), SelectedEnemyLife->GetActorLocation());
-	this->CurrentSkillTarget = SelectedEnemyLife;
+	this->CurrentSkillTargets = {SelectedEnemyLife};
 
 	if (IsValid(this->LockOnIndicator)) this->LockOnIndicator->SetActorLocation(SelectedEnemyLife->GetActorLocation());
 }
@@ -615,12 +636,15 @@ int32 ABattleGameMode::GetEnemyIdxFromEnemyCode(FString EnemyCode)
 void ABattleGameMode::ApplyItemEffect()
 {
 	if (this->CurrentItem.Name.IsEmpty()) return;
-	if (IsValid(this->CurrentItemTarget))
+	if (this->CurrentItemTargets.Num() > 0)
 	{
-		this->CurrentItemTarget->LifeStatComponent->ManipulateHp(this->CurrentItem.HpInc);
-		this->CurrentItemTarget->LifeStatComponent->ManipulateHb(this->CurrentItem.HbInc);
-		this->CurrentItemTarget->LifeStatComponent->ManipulateSodium(this->CurrentItem.NaInc);
-		this->CurrentItemTarget->LifeStatComponent->ManipulatePotassium(this->CurrentItem.KInc);
+		for (ALife* Life : this->CurrentItemTargets)
+		{
+			Life->LifeStatComponent->ManipulateHp(this->CurrentItem.HpInc);
+			Life->LifeStatComponent->ManipulateHb(this->CurrentItem.HbInc);
+			Life->LifeStatComponent->ManipulateSodium(this->CurrentItem.NaInc);
+			Life->LifeStatComponent->ManipulatePotassium(this->CurrentItem.KInc);
+		}
 	}
 }
 
@@ -641,6 +665,17 @@ void ABattleGameMode::EndSelectEnemyMode()
 	{
 		this->LockOnIndicator->Destroy();
 	}
+
+	if (this->LockOnIndicators.Num() > 0)
+	{
+		for (AActor* Indicator : this->LockOnIndicators)
+		{
+			Indicator->Destroy();
+		}
+	}
+	this->LockOnIndicators.Empty();
+	this->LockOnIndicator = nullptr;
+	
 	this->MainCam->SeePlayerBack(CurrentLife->GetActorLocation());
 }
 
@@ -659,12 +694,12 @@ void ABattleGameMode::StartSelectPlayerMode()
 		if (IsValid(Member)) Member->ShowHpBar();
 	}
 	this->MainCam->SeePlayerCenterToMargin(CurrentLife->GetActorLocation());
-	this->CurrentItemTarget = CurrentLife;
+	this->CurrentItemTargets = {CurrentLife};
 }
 
 void ABattleGameMode::SelectNextPlayer()
 {
-	ALifeHuman* CurrentLife = Cast<ALifeHuman>(this->CurrentItemTarget);
+	ALifeHuman* CurrentLife = Cast<ALifeHuman>(this->CurrentItemTargets[0]);
 	int32 CurrentIdx = PartyMembers.Find(CurrentLife);
 	
 	if (CurrentIdx == INDEX_NONE)
@@ -679,17 +714,17 @@ void ABattleGameMode::SelectNextPlayer()
 		NextPlayerIdx = 0;
 	}
 	
-	this->CurrentItemTarget = AccessLifeByCode(PartyMembers[NextPlayerIdx]->PlayerCode);
+	this->CurrentItemTargets = {AccessLifeByCode(PartyMembers[NextPlayerIdx]->PlayerCode)};
 	
-	if (IsValid(this->MainCam) && IsValid(this->CurrentItemTarget))
+	if (IsValid(this->MainCam) && IsValid(this->CurrentItemTargets[0]))
 	{
-		this->MainCam->SeePlayerCenterToMargin(this->CurrentItemTarget->GetActorLocation());
+		this->MainCam->SeePlayerCenterToMargin(this->CurrentItemTargets[0]->GetActorLocation());
 	}
 }
 
 void ABattleGameMode::SelectPrevPlayer()
 {
-	ALifeHuman* CurrentLife = Cast<ALifeHuman>(this->CurrentItemTarget);
+	ALifeHuman* CurrentLife = Cast<ALifeHuman>(this->CurrentItemTargets[0]);
 	int32 CurrentIdx = PartyMembers.Find(CurrentLife);
 	
 	if (CurrentIdx == INDEX_NONE)
@@ -705,11 +740,11 @@ void ABattleGameMode::SelectPrevPlayer()
 		PrevPlayerIdx = PartyMembers.Num() - 1;
 	}
 	
-	this->CurrentItemTarget = AccessLifeByCode(PartyMembers[PrevPlayerIdx]->PlayerCode);
+	this->CurrentItemTargets = {AccessLifeByCode(PartyMembers[PrevPlayerIdx]->PlayerCode)};
 	
-	if (IsValid(this->MainCam) && IsValid(this->CurrentItemTarget))
+	if (IsValid(this->MainCam) && IsValid(this->CurrentItemTargets[0]))
 	{
-		this->MainCam->SeePlayerCenterToMargin(this->CurrentItemTarget->GetActorLocation());
+		this->MainCam->SeePlayerCenterToMargin(this->CurrentItemTargets[0]->GetActorLocation());
 	}
 }
 
@@ -730,9 +765,9 @@ void ABattleGameMode::EndSelectPlayerMode()
 
 void ABattleGameMode::ExecuteItem()
 {
-	if (IsValid(this->CurrentItemTarget))
+	if (this->CurrentItemTargets.Num() > 0)
 	{
-		if (this->CurrentItemTarget->LifeStatComponent->GetHp() <= 0)
+		if (this->CurrentItemTargets.Num() == 1 && this->CurrentItemTargets[0]->LifeStatComponent->GetHp() <= 0)
 		{
 			MyGameInstance->ShowToast(FText::FromString("BATTLE_ALREADY_DEAD"));
 			return;
@@ -753,25 +788,29 @@ void ABattleGameMode::ExecuteItem()
 	FString ItemNameKey = FString::Printf(TEXT("%s_NAME"), *this->CurrentItemRecord.ItemId.ToString());
 	this->MyGameInstance->ShowToastItemName(FText::FromString(ItemNameKey));
 
-	if (IsValid(this->CurrentItemTarget))
+	if (IsValid(this->CurrentItemTargets[0]))
 	{
-		this->MainCam->SeePlayerCenterToMargin(this->CurrentItemTarget->GetActorLocation());
+		this->MainCam->SeePlayerCenterToMargin(this->CurrentItemTargets.Num() == 1 ? this->CurrentItemTargets[0]->GetActorLocation() : FVector::Zero());
 		this->MainCam->StartRotationWithArmLength(200.0f);
 
 		
 		if (this->CurrentItem.PreEffect)
 		{
-			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-				GetWorld(),
-				this->CurrentItem.PreEffect,
-				this->CurrentItemTarget->GetActorLocation() - FVector(0.0f, 0.0f, 80.0f),
-				FRotator::ZeroRotator,
-				FVector(1.0f),
-				true,
-				true,
-				ENCPoolMethod::None,
-				true
-			);
+			for (ALife* Target : this->CurrentItemTargets)
+			{
+				UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+					GetWorld(),
+					this->CurrentItem.PreEffect,
+					Target->GetActorLocation() - FVector(0.0f, 0.0f, 80.0f),
+					FRotator::ZeroRotator,
+					FVector(1.0f),
+					true,
+					true,
+					ENCPoolMethod::None,
+					true
+				);
+			}
+			
 			this->MyGameInstance->PlaySFX(this->SFX_ItemUse);
 		}
 
@@ -818,39 +857,55 @@ void ABattleGameMode::ExecuteSkill()
 	FTimerHandle Th;
 	GetWorldTimerManager().SetTimer(Th, [this]()
 	{
-		UE_LOG(LogTemp, Log, TEXT("Execute Skill to %s from %s"), *this->CurrentSkillTarget->GetTmpCode(), *this->CurrentTurnTarget);
-
-		if (!IsValid(this->CurrentSkillTarget))
-		{
-			this->EndTurn();
-			return;
-		}
-
 		if (this->CurrentSkill.Name.IsEmpty())
 		{
+			UE_LOG(LogTemp, Warning, TEXT("CurrentSkill is not valid"));
 			this->EndTurn();
 			return;
 		}
 		
 		ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
 		
-		if (this->CurrentSkill.Elemental == 0)
+		if (this->CurrentSkill.Elemental == 0 && this->CurrentSkill.bIsAllAttack == false)
 		{
-			this->MainCam->GoTowardsTarget(CurrentLife->GetActorLocation(), this->CurrentSkillTarget->GetActorLocation());
+			this->MainCam->GoTowardsTarget(CurrentLife->GetActorLocation(), this->CurrentSkillTargets[0]->GetActorLocation());
 		}
 		
-		CurrentLife->ExecSkill(this->CurrentSkillTarget, this->CurrentSkill, this->CurrentSkillRecord);
-		
-		this->CurrentSkillTarget->ShowHpBar();
+		CurrentLife->ExecSkill(this->CurrentSkillTargets, this->CurrentSkill, this->CurrentSkillRecord);
 		CurrentLife->ShowHpBar();
+
+		for (ALife* Target : this->CurrentSkillTargets)
+		{
+			Target->ShowHpBar();
+		}
+		
 	},1.0f, false);
+}
+
+TArray<ALife*> ABattleGameMode::GetAllAliveEnemies()
+{
+	TArray<ALife*> Tmp = {};
+	// 리워드 경험치 어플라이
+	for (ALifeEnemy* Enemy : Enemies)
+	{
+		if (Enemy->LifeStatComponent->GetHp() > 0) // 살아있는 멤버만..
+		{
+			Tmp.Add(Enemy);
+		}
+	}
+
+	return Tmp;
 }
 
 void ABattleGameMode::EndSkill()
 {
 	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
+
+	for (ALife* Target : this->CurrentSkillTargets)
+	{
+		if (IsValid(Target)) Target->HideHpBar();
+	}
 	
-	this->CurrentSkillTarget->HideHpBar();
 	CurrentLife->HideHpBar();
 	
 	this->bIsSkillPlaying = false;
@@ -931,100 +986,102 @@ void ABattleGameMode::SelectPlayerLowestHp()
 
 	if (IsValid(LowestHpLife))
 	{
-		this->CurrentSkillTarget = LowestHpLife;
+		this->CurrentSkillTargets = {LowestHpLife};
 	}
 }
 
 void ABattleGameMode::ApplyDamage()
 {
 	ALife* CurrentTurnLife = AccessLifeByCode(this->CurrentTurnTarget);
-	if (IsValid(CurrentTurnLife) && IsValid(this->CurrentSkillTarget))
+	if (IsValid(CurrentTurnLife) && this->CurrentSkillTargets.Num() > 0)
 	{
-		int32 MinDamage = (CurrentTurnLife->LifeStatComponent->GetStr() +  + this->CurrentSkill.BaseDamage/10.0f)*(2 + (CurrentTurnLife->LifeStatComponent->GetCon()/80));
-		int32 MaxDamage = (CurrentTurnLife->LifeStatComponent->GetStr() + this->CurrentSkill.BaseDamage/7.0f)*3.5f;
-		// 랜덤 데미지 계산
-		float BaseDamage = static_cast<float>(FMath::RandRange(MinDamage, MaxDamage)) * (static_cast<float>(this->CurrentSkill.BaseDamage)/100.0f);
-		
-		// 방어력 적용
-		int32 Defense = this->CurrentSkillTarget->LifeStatComponent->GetDef() * BattleConstants::DEFENSE_MULTIPLIER;
-		int32 FinalDamage = FMath::Max(1, BaseDamage - Defense);
-
-		if (this->CurrentSkillTarget->GetIsDefend())
+		for (ALife* Target : this->CurrentSkillTargets)
 		{
-			FinalDamage = FMath::Max(1, FMath::Floor(FinalDamage / 2));
-		}
+			int32 MinDamage = (CurrentTurnLife->LifeStatComponent->GetStr() +  + this->CurrentSkill.BaseDamage/10.0f)*(2 + (CurrentTurnLife->LifeStatComponent->GetCon()/80));
+			int32 MaxDamage = (CurrentTurnLife->LifeStatComponent->GetStr() + this->CurrentSkill.BaseDamage/7.0f)*3.5f;
+			// 랜덤 데미지 계산
+			float BaseDamage = static_cast<float>(FMath::RandRange(MinDamage, MaxDamage)) * (static_cast<float>(this->CurrentSkill.BaseDamage)/100.0f);
+			
+			// 방어력 적용
+			int32 Defense = Target->LifeStatComponent->GetDef() * BattleConstants::DEFENSE_MULTIPLIER;
+			int32 FinalDamage = FMath::Max(1, BaseDamage - Defense);
 
-		bool bIsWeak = false;
-		bool bIsImmune = false;
-		this->bIsCurrentTurnOneMore = false;
-
-		if (
-		this->CurrentSkill.Elemental == 1 && this->CurrentSkillTarget->LifeStatComponent->GetElementalFire() < 0 ||
-		this->CurrentSkill.Elemental == 2 && this->CurrentSkillTarget->LifeStatComponent->GetElementalIce() < 0 ||
-		this->CurrentSkill.Elemental == 3 && this->CurrentSkillTarget->LifeStatComponent->GetElementalThunder() < 0 ||
-		this->CurrentSkill.Elemental == 4 && this->CurrentSkillTarget->LifeStatComponent->GetElementalWind() < 0 ||
-		this->CurrentSkill.Elemental == 5 && this->CurrentSkillTarget->LifeStatComponent->GetElementalHoly() < 0 ||
-		this->CurrentSkill.Elemental == 6 && this->CurrentSkillTarget->LifeStatComponent->GetElementalDarkness() < 0
-		)
-		{
-			bIsWeak = true;
-			if (this->CurrentSkillTarget->GetIsDown())
+			if (Target->GetIsDefend())
 			{
-				this->bIsCurrentTurnOneMore = false;
-				
-			} else
-			{
-				this->bIsCurrentTurnOneMore = true;
-				this->CurrentSkillTarget->MakeDown();
+				FinalDamage = FMath::Max(1, FMath::Floor(FinalDamage / 2));
 			}
-		}
 
-		if (
-		this->CurrentSkill.Elemental == 1 && this->CurrentSkillTarget->LifeStatComponent->GetElementalFire() == 1 ||
-		this->CurrentSkill.Elemental == 2 && this->CurrentSkillTarget->LifeStatComponent->GetElementalIce() == 1 ||
-		this->CurrentSkill.Elemental == 3 && this->CurrentSkillTarget->LifeStatComponent->GetElementalThunder() == 1 ||
-		this->CurrentSkill.Elemental == 4 && this->CurrentSkillTarget->LifeStatComponent->GetElementalWind() == 1 ||
-		this->CurrentSkill.Elemental == 5 && this->CurrentSkillTarget->LifeStatComponent->GetElementalHoly() == 1 ||
-		this->CurrentSkill.Elemental == 6 && this->CurrentSkillTarget->LifeStatComponent->GetElementalDarkness() == 1
-		)
-		{
-			bIsImmune = true;
-		}
+			bool bIsWeak = false;
+			bool bIsImmune = false;
+			this->bIsCurrentTurnOneMore = false;
 
-		if (bIsWeak)
-		{
-			FinalDamage *= BattleConstants::WEAK_DAMAGE_MULTIPLIER;
-		} else if (bIsImmune)
-		{
-			FinalDamage *= BattleConstants::IMMUNE_DAMAGE_MULTIPLIER;
-		}
-
-		// Unreal Engine 기본 데미지 시스템 사용
-		UGameplayStatics::ApplyDamage(
-			this->CurrentSkillTarget,           // DamagedActor
-			FinalDamage,                         // BaseDamage
-			CurrentTurnLife->GetController(),    // EventInstigator
-			CurrentTurnLife,                     // DamageCauser
-			bIsWeak ? UDamageTypeWeak::StaticClass() : UDamageType::StaticClass()           // DamageType
-		);
-
-		this->DispatcherLifeHit.Broadcast();
-		if (this->CurrentSkillTarget->LifeStatComponent->GetHp()<=0)
-		{
-			FTimerHandle Th;
-			FVector SavedTargetPos = this->CurrentSkillTarget->GetActorLocation();
-			GetWorldTimerManager().SetTimer(Th, [this,SavedTargetPos]()
+			if (
+			this->CurrentSkill.Elemental == 1 && Target->LifeStatComponent->GetElementalFire() < 0 ||
+			this->CurrentSkill.Elemental == 2 && Target->LifeStatComponent->GetElementalIce() < 0 ||
+			this->CurrentSkill.Elemental == 3 && Target->LifeStatComponent->GetElementalThunder() < 0 ||
+			this->CurrentSkill.Elemental == 4 && Target->LifeStatComponent->GetElementalWind() < 0 ||
+			this->CurrentSkill.Elemental == 5 && Target->LifeStatComponent->GetElementalHoly() < 0 ||
+			this->CurrentSkill.Elemental == 6 && Target->LifeStatComponent->GetElementalDarkness() < 0
+			)
 			{
-				if (this->bEndGame) return;
-				ALife* CurrentTurnLife = AccessLifeByCode(this->CurrentTurnTarget);
-				if (IsValid(CurrentTurnLife))
+				bIsWeak = true;
+				if (Target->GetIsDown())
 				{
-					this->MainCam->SeePlayerBackToEnemy(CurrentTurnLife->GetActorLocation(), SavedTargetPos);
+					this->bIsCurrentTurnOneMore = false;
+				} else
+				{
+					if (this->CurrentSkillTargets.Num() == 1) this->bIsCurrentTurnOneMore = true;
+					Target->MakeDown();
 				}
-			},3.0f,false);
-			// handle death
-			UE_LOG(LogTemp,Log,TEXT("[BattleGameMode] : Handle %s death"),*this->CurrentSkillTarget->GetTmpCode());
-			this->DeleteFromOrderedList(this->CurrentSkillTarget->GetTmpCode());
+			}
+
+			if (
+			this->CurrentSkill.Elemental == 1 && Target->LifeStatComponent->GetElementalFire() == 1 ||
+			this->CurrentSkill.Elemental == 2 && Target->LifeStatComponent->GetElementalIce() == 1 ||
+			this->CurrentSkill.Elemental == 3 && Target->LifeStatComponent->GetElementalThunder() == 1 ||
+			this->CurrentSkill.Elemental == 4 && Target->LifeStatComponent->GetElementalWind() == 1 ||
+			this->CurrentSkill.Elemental == 5 && Target->LifeStatComponent->GetElementalHoly() == 1 ||
+			this->CurrentSkill.Elemental == 6 && Target->LifeStatComponent->GetElementalDarkness() == 1
+			)
+			{
+				bIsImmune = true;
+			}
+
+			if (bIsWeak)
+			{
+				FinalDamage *= BattleConstants::WEAK_DAMAGE_MULTIPLIER;
+			} else if (bIsImmune)
+			{
+				FinalDamage *= BattleConstants::IMMUNE_DAMAGE_MULTIPLIER;
+			}
+
+			// Unreal Engine 기본 데미지 시스템 사용
+			UGameplayStatics::ApplyDamage(
+				Target,           // DamagedActor
+				FinalDamage,                         // BaseDamage
+				CurrentTurnLife->GetController(),    // EventInstigator
+				CurrentTurnLife,                     // DamageCauser
+				bIsWeak ? UDamageTypeWeak::StaticClass() : UDamageType::StaticClass()           // DamageType
+			);
+
+			this->DispatcherLifeHit.Broadcast();
+			if (Target->LifeStatComponent->GetHp()<=0)
+			{
+				FTimerHandle Th;
+				FVector SavedTargetPos = Target->GetActorLocation();
+				GetWorldTimerManager().SetTimer(Th, [this,SavedTargetPos]()
+				{
+					if (this->bEndGame) return;
+					ALife* CurrentTurnLife = AccessLifeByCode(this->CurrentTurnTarget);
+					if (IsValid(CurrentTurnLife))
+					{
+						this->MainCam->SeePlayerBackToEnemy(CurrentTurnLife->GetActorLocation(), SavedTargetPos);
+					}
+				},3.0f,false);
+				// handle death
+				UE_LOG(LogTemp,Log,TEXT("[BattleGameMode] : Handle %s death"),*Target->GetTmpCode());
+				this->DeleteFromOrderedList(Target->GetTmpCode());
+			}
 		}
 	}
 }
@@ -1039,7 +1096,7 @@ void ABattleGameMode::DeleteFromOrderedList(FString TmpCode)
 	
 	if (!this->DeadList.Contains(TmpCode))
 	{
-		UE_LOG(LogTemp,Log,TEXT("[BattleGameMode] : %s (%s) DEAD. add to dead list."),*this->CurrentSkillTarget->GetName(), *TmpCode);
+		UE_LOG(LogTemp,Log,TEXT("[BattleGameMode] : %s (%s) DEAD. add to dead list."),*this->CurrentSkillTargets->GetName(), *TmpCode);
 		this->DeadList.Add(TmpCode);
 	}else
 	{
