@@ -117,6 +117,9 @@ void ABattleGameMode::Tick(float DeltaSeconds)
 	
 }
 
+/**
+ * This is legacy code!!!
+ */
 void ABattleGameMode::StartIonTimer()
 {
 	for (ALife* Life : PartyMembers)
@@ -337,7 +340,6 @@ void ABattleGameMode::BeginPlay()
 	FTimerHandle TimerHandle3;
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle3, [this]()
 	{
-		this->StartIonTimer();
 		this->AdjustCam();
 	}, BattleConstants::TIMER_START_ION, false);
 }
@@ -446,6 +448,15 @@ void ABattleGameMode::CameraSeeTurnOwner()
 	}
 }
 
+void ABattleGameMode::CameraSee_SkillTargets_All()
+{
+	ALifeHuman* CurrentTurnLife = AccessLifeByPlayerCode(CurrentTurnTarget);
+	if (IsValid(CurrentTurnLife))
+	{
+		this->MainCam->SeePlayerBackToEnemy(CurrentTurnLife->GetActorLocation(), FVector::Zero());
+	}
+}
+
 void ABattleGameMode::CameraSee_SkillTarget_Angle1()
 {
 	ALifeHuman* CurrentTurnLife = AccessLifeByPlayerCode(CurrentTurnTarget);
@@ -521,16 +532,32 @@ void ABattleGameMode::StartSelectAllEnemy()
 	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
 	if (IsValid(GI))
 	{
+		GI->ShowToast(FText::FromString("BATTLE_ALL_SELECTED"));
+		UE_LOG(LogTemp, Warning, TEXT("StartSelectAllEnemy :: Try to select all enemy!"));
+		FirstPC->SetInputMode(FInputModeGameOnly());
+		FirstPC->bShowMouseCursor = false;
+		
 		ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
 		this->MainCam->SeePlayerBackToEnemy(CurrentLife->GetActorLocation(), FVector::Zero());
 		
+		this->LockOnIndicators.Empty();
+		this->CurrentSkillTargets.Empty();
+		
 		for (ALifeEnemy* Enemy : Enemies)
 		{
-			if (Enemy->LifeStatComponent->GetHp() <= 0) continue;
+			if (Enemy->LifeStatComponent->GetHp() <= 0)
+			{
+				UE_LOG(LogTemp, Error, TEXT("  ==> Skip enemy due to dead"));
+				continue;
+			};
 			if (IsValid(Enemy)) Enemy->ShowHpBar();
+			
 			AActor* Indicator = GetWorld()->SpawnActor(LockOnIndicatorClass);
 			if (IsValid(Indicator)) Indicator->SetActorLocation(Enemy->GetActorLocation());
+			
 			this->LockOnIndicators.Add(Indicator);
+			this->CurrentSkillTargets.Add(Enemy);
+			UE_LOG(LogTemp, Warning, TEXT("  => %s added."), *Enemy->GetName());
 		}
 	}
 }
@@ -792,6 +819,8 @@ void ABattleGameMode::ExecuteItem()
 	{
 		this->MainCam->SeePlayerCenterToMargin(this->CurrentItemTargets.Num() == 1 ? this->CurrentItemTargets[0]->GetActorLocation() : FVector::Zero());
 		this->MainCam->StartRotationWithArmLength(200.0f);
+		this->CurrentItemTargets[0]->ShowHpBar();
+
 
 		
 		if (this->CurrentItem.PreEffect)
@@ -835,23 +864,27 @@ void ABattleGameMode::ExecuteSkill()
 		FirstPC->SetInputMode(FInputModeUIOnly());
 		FirstPC->bShowMouseCursor = false;
 	}
+	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
+	bool bIsPlayer = !this->CurrentTurnTarget.StartsWith("Enemy_");
+	
+	if (CurrentLife->LifeStatComponent->GetHp() <= this->CurrentSkill.CostHP)
+	{
+		this->MyGameInstance->ShowToast(FText::FromString("BATTLE_HP_NOT_ENOUGH"));
+		return;
+	}
 	
 	//스킬네임 토스트로 표출
 	this->bIsSkillPlaying = true;
 	this->EndSelectEnemyMode();
 	FString SkillNameKey = FString::Printf(TEXT("%s_TITLE"), *this->CurrentSkillRecord.SkillId.ToString());
 	this->MyGameInstance->ShowToastSkillName(FText::FromString(SkillNameKey));
-	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
+	
 
 	// 만약 플레이어가 스킬을 시전하면 면상을 한번 보여주게함
-	if (!this->CurrentTurnTarget.StartsWith("Enemy_"))
+	// 마법계 스킬일때만 손목을 그으므로 물리계스킬일때는 얼굴 안보여줘도 댐!
+	if (!this->CurrentTurnTarget.StartsWith("Enemy_") && this->CurrentSkill.Elemental > 0)
 	{
-		// 마법계 스킬일때만 손목을 그으므로 물리계스킬일때는 얼굴 안보여줘도 댐!
-		if (this->CurrentSkill.Elemental > 0)
-		{
-			this->MainCam->SeePlayerCenterToMargin(CurrentLife->GetActorLocation());
-		}
-		
+		this->MainCam->SeePlayerCenterToMargin(CurrentLife->GetActorLocation());
 	}
 
 	FTimerHandle Th;

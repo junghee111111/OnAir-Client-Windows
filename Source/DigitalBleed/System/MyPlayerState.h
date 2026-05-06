@@ -29,13 +29,13 @@ protected:
 	int32 LStat_Brave = 1;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Life Stats")
-	int32 LStat_Intel_Exp = 0;
+	int32 LStat_Intel_Exp = 4;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Life Stats")
-	int32 LStat_Charm_Exp = 0;
+	int32 LStat_Charm_Exp = 4;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Life Stats")
-	int32 LStat_Brave_Exp = 0;
+	int32 LStat_Brave_Exp = 4;
 	
 	// 플레이어 스탯
 	UPROPERTY(BlueprintReadWrite, Replicated, Category = "Stats")

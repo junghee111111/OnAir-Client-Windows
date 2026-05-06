@@ -271,6 +271,9 @@ public:
 	void ApplyDamage();
 
 	UFUNCTION(BlueprintCallable)
+	void CameraSee_SkillTargets_All();
+
+	UFUNCTION(BlueprintCallable)
 	void CameraSee_SkillTarget_Angle1();
 
 	UFUNCTION(BlueprintCallable)

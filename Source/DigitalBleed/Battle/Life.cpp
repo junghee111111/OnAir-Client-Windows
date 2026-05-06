@@ -191,33 +191,23 @@ void ALife::ExecSkillMontages()
 			this->AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, this->MontagePhysAttack3);
 		}
 		break;
-	default: // 물리공격
-		this->MyGameMode->CameraSee_SkillTarget_Angle4();
-		if (IsValid(this->CurrentSkill.PreEffect))
+	default: // 마법 공격!
+		if (this->CurrentSkill.bIsAllAttack == true)
 		{
-			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-				GetWorld(),
-				this->CurrentSkill.PreEffect,
-				this->GetActorLocation(),
-				this->GetActorRotation(),
-				FVector(1.0f),
-				true
-			);
+			this->MyGameMode->CameraSee_SkillTargets_All();
+		} else
+		{
+			this->MyGameMode->CameraSee_SkillTarget_Angle4();
 		}
+		
+		
 		if (IsValid(this->CurrentSkill.ProjectileEffect))
 		{
-			if (IsValid(this->CurrentSkill.ProjectileEffect))
+			for (ALife* Target : this->MyGameMode->GetSkillTarget())
 			{
-				TArray<ALife*> Targets = this->CurrentSkill.bIsAllAttack 
-					? this->MyGameMode->GetAllAliveEnemies() 
-					: TArray<ALife*>{ this->MyGameMode->GetSkillTarget() };
+				if (!IsValid(Target)) continue;
 
-				for (ALife* Target : Targets)
-				{
-					if (!IsValid(Target)) continue;
-
-					LaunchProjectileToTarget(Target);
-				}
+				LaunchProjectileToTarget(Target);
 			}
 		}
 
@@ -298,20 +288,27 @@ void ALife::Tick(float DeltaTime)
 
 void ALife::ExecSkill(TArray<ALife*> Targets, FRowSkill Skill, FRowSkillRecord SkillRecord)
 {
-	if (Targets.Num() <= 0) return;
+	UE_LOG(LogTemp, Log, TEXT("Life - %s : ExecSkill -- skill name : %s" ), *this->GetName(), *Skill.Name.ToString())
+	if (Targets.Num() <= 0)
+	{
+		UE_LOG(LogTemp, Error, TEXT("  ==> Canceled!! No targets.." ))
+		return;
+	}
 	
 	this->CurrentSkill = Skill;
 	this->CurrentSkillRecord = SkillRecord;
 
+	
+
 	// 단일 대상 공격이면, 타겟을 바라보도록 회전
-	if (Targets.Num() == 1)
+	if (Skill.bIsAllAttack == false)
 	{
 		FRotator LookAtRotation = (Targets[0]->GetActorLocation() - GetActorLocation()).Rotation();
 		SetActorRotation(FRotator(0, LookAtRotation.Yaw, 0));
 	}
 
 	this->LifeStatComponent->ManipulateHp(Skill.CostHP*-1);
-	this->LifeStatComponent->ManipulateHb(Skill.CostHb*-1);
+	// this->LifeStatComponent->ManipulateHb(Skill.CostHb*-1);
 	this->LifeStatComponent->ManipulateSodium(Skill.CostNa*-1);
 	this->LifeStatComponent->ManipulatePotassium(Skill.CostK*-1);
 	
@@ -341,7 +338,25 @@ void ALife::ExecSkill(TArray<ALife*> Targets, FRowSkill Skill, FRowSkillRecord S
 			float MontageLength = this->AnimInstance->Montage_Play(
 				this->MontageSuicide,1.0f, EMontagePlayReturnType::MontageLength,
 				0.0f, true);
+
 			FTimerHandle Th;
+			FTimerHandle Th2;
+
+			GetWorldTimerManager().SetTimer(Th2, [this]()
+			{
+				if (IsValid(this->CurrentSkill.PreEffect))
+				{
+					UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+						GetWorld(),
+						this->CurrentSkill.PreEffect,
+						this->GetActorLocation(),
+						this->GetActorRotation(),
+						FVector(1.0f),
+						true
+					);
+				}
+			}, MontageLength-0.7f, false);
+			
 			GetWorldTimerManager().SetTimer(Th, [this]()
 			{
 				this->ExecSkillMontages();
