@@ -981,9 +981,11 @@ void ABattleGameMode::EndSkill()
 	} else
 	{
 		this->CameraSeeTurnOwner();
-
-		APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
-		
+		if (this->bIsPlayerSideTurn==false)
+		{
+			ALifeEnemy* CurrentEnemy = Cast<ALifeEnemy>(AccessLifeByCode(CurrentTurnTarget));
+			if (IsValid(CurrentEnemy)) CurrentEnemy->DispatcherStartTurn.Broadcast();
+		}
 	}
 }
 
