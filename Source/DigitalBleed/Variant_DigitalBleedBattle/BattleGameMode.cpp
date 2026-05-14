@@ -57,7 +57,7 @@ void ABattleGameMode::SpawnEnemies()
 		float distance = BattleConstants::ENEMY_SPAWN_RADIUS;
 		for (int i = 0; i < this->LifeEnemies.Num(); i++)
 		{
-			float Angle = AngleBetweenEnemies * i;
+			float Angle = AngleBetweenEnemies * i + PI/8; // 45도 비틀어서 추가하기 위해 PI/8을 추가한다.
 			FVector SpawnLocation = FVector(distance * FMath::Cos(Angle), distance * FMath::Sin(Angle), 0);
 
 			FRotator LookRotation = (SpawnLocation-FVector(0,0,0)).Rotation();
@@ -1098,6 +1098,7 @@ void ABattleGameMode::ApplyDamage()
 	{
 		for (ALife* Target : this->CurrentSkillTargets)
 		{
+			// 씨발같은 상수를 언젠가 리팩토링 해야할텐데.. 
 			int32 MinDamage = (CurrentTurnLife->LifeStatComponent->GetStr() +  + this->CurrentSkill.BaseDamage/10.0f)*(2 + (CurrentTurnLife->LifeStatComponent->GetCon()/80));
 			int32 MaxDamage = (CurrentTurnLife->LifeStatComponent->GetStr() + this->CurrentSkill.BaseDamage/7.0f)*3.5f;
 			// 랜덤 데미지 계산
