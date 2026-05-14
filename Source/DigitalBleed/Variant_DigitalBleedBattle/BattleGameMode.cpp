@@ -1079,7 +1079,7 @@ void ABattleGameMode::SelectWeakestPlayer()
 		if (PlayersHavingWeakPoint.Num() > 0)
 		{
 			int32 RandomIdx = FMath::RandRange(0, PlayersHavingWeakPoint.Num()-1);
-			this->CurrentSkillTargets.Add(PlayersHavingWeakPoint[RandomIdx]);
+			this->CurrentSkillTargets = {PlayersHavingWeakPoint[RandomIdx]};
 		} else
 		{
 			// 만약 약점가진애가 없으면.. 제일 피 낮은애를 공격한다.
@@ -1090,6 +1090,7 @@ void ABattleGameMode::SelectWeakestPlayer()
 
 void ABattleGameMode::SelectAllPlayer()
 {
+	TArray<ALifeHuman*> PlayersHavingWeakPoint = {};
 	for (ALifeHuman* LifeHuman : PartyMembers)
 	{
 		if (LifeHuman->LifeStatComponent->GetHp() <= 0) continue;
