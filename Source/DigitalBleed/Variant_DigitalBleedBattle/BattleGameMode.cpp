@@ -1,5 +1,6 @@
 ﻿// 2026.01.13 재작성 시작, Written By Junghee Wang
 // 2026.02.02 리팩토링 1차
+// 2026.05.14 리팩토링 2차
 
 #include "BattleGameMode.h"
 
@@ -301,7 +302,7 @@ void ABattleGameMode::BeginPlay()
 	// 첫 번째 플레이어(나) 추가
 	if (IsValid(FirstPC))
 	{
-		FirstPC->SetInputMode(FInputModeUIOnly());
+		FirstPC->SetInputMode(FInputModeGameOnly());
 		FirstPC->bShowMouseCursor = true;
 		
 		ALifeHuman* MyLifeHuman = Cast<ALifeHuman>(FirstPC->GetPawn());
@@ -493,16 +494,33 @@ void ABattleGameMode::CameraSee_SkillTarget_Angle4()
 	}
 }
 
+void ABattleGameMode::CameraSee_SkillTarget_FromEnemy()
+{
+	ALife* CurrentTurnLife = AccessLifeByCode(CurrentTurnTarget);
+	if (IsValid(CurrentTurnLife))
+	{
+		this->MainCam->SeeEnemyBackToPlayer(this->CurrentSkillTargets[0]->GetActorLocation(), CurrentTurnLife->GetActorLocation());
+	}
+}
+
+void ABattleGameMode::CameraSee_SkillTarget_EveryBody()
+{
+	ALife* CurrentTurnLife = AccessLifeByCode(CurrentTurnTarget);
+	if (IsValid(CurrentTurnLife))
+	{
+		this->MainCam->StartRotationWithArmLength(700.0f);
+	}
+}
+
 void ABattleGameMode::StartSelectEnemyMode()
 {
 	this->bEnemySelectMode = true;
 	UDigitalBleedGameInstance* GI = Cast<UDigitalBleedGameInstance>(GetGameInstance());
-	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
+	
 	if (IsValid(GI))
 	{
 		GI->ShowToast(FText::FromString("BATTLE_SELECT_TARGET"));
-		FirstPC->SetInputMode(FInputModeGameOnly());
-		FirstPC->bShowMouseCursor = false;
+		
 		ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
 		ALifeEnemy* SelectedEnemyLife = Enemies[SelectedEnemy];
 		this->CurrentSkillTargets = {SelectedEnemyLife};
@@ -510,6 +528,17 @@ void ABattleGameMode::StartSelectEnemyMode()
 		if (IsValid(SelectedEnemyLife))
 		{
 			this->MainCam->SeePlayerBackToEnemy(CurrentLife->GetActorLocation(), SelectedEnemyLife->GetActorLocation());
+
+			if (this->LockOnIndicator != nullptr)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Destroy LockOnIndicator"));
+				this->LockOnIndicator->Destroy();
+			}
+
+			for (AActor* Indicator : this->LockOnIndicators)
+			{
+				Indicator->Destroy();
+			}
 			
 			this->LockOnIndicator = GetWorld()->SpawnActor(LockOnIndicatorClass);
 			if (IsValid(this->LockOnIndicator)) this->LockOnIndicator->SetActorLocation(SelectedEnemyLife->GetActorLocation());
@@ -534,11 +563,19 @@ void ABattleGameMode::StartSelectAllEnemy()
 	{
 		GI->ShowToast(FText::FromString("BATTLE_ALL_SELECTED"));
 		UE_LOG(LogTemp, Warning, TEXT("StartSelectAllEnemy :: Try to select all enemy!"));
-		FirstPC->SetInputMode(FInputModeGameOnly());
-		FirstPC->bShowMouseCursor = false;
 		
 		ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
 		this->MainCam->SeePlayerBackToEnemy(CurrentLife->GetActorLocation(), FVector::Zero());
+
+		if (this->LockOnIndicator != nullptr)
+		{
+			this->LockOnIndicator->Destroy();
+		}
+		
+		for (AActor* Indicator : this->LockOnIndicators)
+		{
+			Indicator->Destroy();
+		}
 		
 		this->LockOnIndicators.Empty();
 		this->CurrentSkillTargets.Empty();
@@ -679,8 +716,8 @@ void ABattleGameMode::EndSelectEnemyMode()
 {
 	this->bEnemySelectMode = false;
 	if (this->bCTScanMode) this->bCTScanMode = false;
+	
 	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
-	FirstPC->SetInputMode(FInputModeUIOnly());
 	FirstPC->bShowMouseCursor = true;
 	
 	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
@@ -710,12 +747,10 @@ void ABattleGameMode::StartSelectPlayerMode()
 {
 	this->bPlayerSelectMode = true;
 	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
+	FirstPC->bShowMouseCursor = false;
+	
 	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
-	if (IsValid(FirstPC))
-	{
-		FirstPC->SetInputMode(FInputModeGameOnly());
-		FirstPC->bShowMouseCursor = false;
-	}
+	
 	for (ALifeHuman* Member : PartyMembers)
 	{
 		if (IsValid(Member)) Member->ShowHpBar();
@@ -779,7 +814,6 @@ void ABattleGameMode::EndSelectPlayerMode()
 {
 	this->bPlayerSelectMode = false;
 	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
-	FirstPC->SetInputMode(FInputModeUIOnly());
 	FirstPC->bShowMouseCursor = true;
 	
 	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
@@ -801,12 +835,6 @@ void ABattleGameMode::ExecuteItem()
 		}
 	}
 	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
-	if (IsValid(FirstPC))
-	{
-			
-		FirstPC->SetInputMode(FInputModeUIOnly());
-		FirstPC->bShowMouseCursor = false;
-	}
 	
 	this->bIsItemPlaying = true;
 	this->EndSelectEnemyMode();
@@ -857,15 +885,7 @@ void ABattleGameMode::ExecuteItem()
 
 void ABattleGameMode::ExecuteSkill()
 {
-	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
-	if (IsValid(FirstPC))
-	{
-			
-		FirstPC->SetInputMode(FInputModeUIOnly());
-		FirstPC->bShowMouseCursor = false;
-	}
 	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
-	bool bIsPlayer = !this->CurrentTurnTarget.StartsWith("Enemy_");
 	
 	if (CurrentLife->LifeStatComponent->GetHp() <= this->CurrentSkill.CostHP)
 	{
@@ -876,7 +896,9 @@ void ABattleGameMode::ExecuteSkill()
 	//스킬네임 토스트로 표출
 	this->bIsSkillPlaying = true;
 	this->EndSelectEnemyMode();
+	
 	FString SkillNameKey = FString::Printf(TEXT("%s_TITLE"), *this->CurrentSkillRecord.SkillId.ToString());
+	UE_LOG(LogTemp, Warning, TEXT("%s : %s"), *this->CurrentSkillRecord.SkillId.ToString(), *SkillNameKey);
 	this->MyGameInstance->ShowToastSkillName(FText::FromString(SkillNameKey));
 	
 
@@ -899,7 +921,7 @@ void ABattleGameMode::ExecuteSkill()
 		
 		ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
 		
-		if (this->CurrentSkill.Elemental == 0 && this->CurrentSkill.bIsAllAttack == false)
+		if (this->CurrentSkill.bIsAllAttack == false)
 		{
 			this->MainCam->GoTowardsTarget(CurrentLife->GetActorLocation(), this->CurrentSkillTargets[0]->GetActorLocation());
 		}
@@ -957,12 +979,7 @@ void ABattleGameMode::EndSkill()
 		this->CameraSeeTurnOwner();
 
 		APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
-	
-		if (IsValid(FirstPC))
-		{
-			FirstPC->SetInputMode(FInputModeUIOnly());
-			FirstPC->bShowMouseCursor = true;
-		}
+		
 	}
 }
 
@@ -995,18 +1012,47 @@ ALife* ABattleGameMode::AccessLifeByCode(FString Code)
 
 void ABattleGameMode::SetCurrentSkill(FRowSkill Skill)
 {
+	UE_LOG(LogTemp, Log, TEXT("GameMode Current Skill Changed -- %s"), *Skill.Name.ToString());
 	this->CurrentSkill = Skill;
 }
 
 void ABattleGameMode::SetCurrentSkillRecord(FRowSkillRecord Skill)
 {
+	UE_LOG(LogTemp, Log, TEXT("GameMode Current Skill Record Changed -- %s"), *Skill.SkillId.ToString());
 	this->CurrentSkillRecord = Skill;
 }
 
-void ABattleGameMode::SelectPlayerLowestHp()
+/**
+ * 스마트하게 공격할 대상을 찾는다.
+ * 머리아프다..
+ */
+void ABattleGameMode::SelectWeakestPlayer()
 {
 	int32 LowestHp = 99999;
 	ALifeHuman* LowestHpLife = nullptr;
+	TArray<ALifeHuman*> PlayersHavingWeakPoint = {};
+
+	// 만약 속성 공격이면..
+	if (this->CurrentSkill.Elemental>0)
+	{
+		// 일단 약점이 잇는 캐릭터를 찾는다.
+		for (ALifeHuman* LifeHuman : PartyMembers)
+		{
+			if (LifeHuman->LifeStatComponent->GetHp() <= 0) continue;
+			if ((this->CurrentSkill.Elemental==1 && LifeHuman->LifeStatComponent->GetElementalFire()==-1)
+				||(this->CurrentSkill.Elemental==2 && LifeHuman->LifeStatComponent->GetElementalIce()==-1)
+				||(this->CurrentSkill.Elemental==3 && LifeHuman->LifeStatComponent->GetElementalThunder()==-1)
+				||(this->CurrentSkill.Elemental==4 && LifeHuman->LifeStatComponent->GetElementalWind()==-1)
+				||(this->CurrentSkill.Elemental==5 && LifeHuman->LifeStatComponent->GetElementalHoly()==-1)
+				||(this->CurrentSkill.Elemental==6 && LifeHuman->LifeStatComponent->GetElementalDarkness()==-1)
+			)
+			{
+				PlayersHavingWeakPoint.Add(LifeHuman);
+			}
+		}
+	}
+	
+	//Hp가 젤 낮은 캐릭을 찾는다.
 	for (ALifeHuman* LifeHuman : PartyMembers)
 	{
 		if (LifeHuman->LifeStatComponent->GetHp() <= 0) continue;
@@ -1017,11 +1063,33 @@ void ABattleGameMode::SelectPlayerLowestHp()
 		}
 	}
 
-	if (IsValid(LowestHpLife))
+	if (this->CurrentSkill.Elemental==0) // 물리 공격이면 Hp가 젤 낮은 캐릭을 스킬 타겟으로 설정
 	{
 		this->CurrentSkillTargets = {LowestHpLife};
+	} else
+	{
+		// 마법공격이면 약점인 애들 중에 한명을 랜덤하게 선택한다.
+		if (PlayersHavingWeakPoint.Num() > 0)
+		{
+			int32 RandomIdx = FMath::RandRange(0, PlayersHavingWeakPoint.Num()-1);
+			this->CurrentSkillTargets.Add(PlayersHavingWeakPoint[RandomIdx]);
+		} else
+		{
+			// 만약 약점가진애가 없으면.. 제일 피 낮은애를 공격한다.
+			this->CurrentSkillTargets = {LowestHpLife};
+		}
 	}
 }
+
+void ABattleGameMode::SelectAllPlayer()
+{
+	for (ALifeHuman* LifeHuman : PartyMembers)
+	{
+		if (LifeHuman->LifeStatComponent->GetHp() <= 0) continue;
+		this->CurrentSkillTargets.Add(LifeHuman);
+	}
+}
+
 
 void ABattleGameMode::ApplyDamage()
 {
@@ -1112,7 +1180,7 @@ void ABattleGameMode::ApplyDamage()
 					}
 				},3.0f,false);
 				// handle death
-				UE_LOG(LogTemp,Log,TEXT("[BattleGameMode] : Handle %s death"),*Target->GetTmpCode());
+				//UE_LOG(LogTemp,Log,TEXT("[BattleGameMode] : Handle %s death"),*Target->GetTmpCode());
 				this->DeleteFromOrderedList(Target->GetTmpCode());
 			}
 		}
@@ -1247,12 +1315,6 @@ void ABattleGameMode::InitNewTurn()
 	// 다음 턴 시작
 
 	APlayerController* FirstPC = GetWorld()->GetFirstPlayerController();
-	
-	if (IsValid(FirstPC))
-	{
-		FirstPC->SetInputMode(FInputModeUIOnly());
-		FirstPC->bShowMouseCursor = true;
-	}
 	
 	if (this->CurrentTurnTarget.StartsWith("Enemy_"))
 	{

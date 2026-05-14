@@ -48,6 +48,7 @@ void ALife::BeginPlay()
 	ALifeHuman* CanIHuman = Cast<ALifeHuman>(this);
 	if (CanIHuman != nullptr)
 	{
+		this->AmIHuman = true;
 		// See FVector(0,0,0)
 		FTimerHandle TimerHandle;
 		GetWorldTimerManager().SetTimer(TimerHandle, [this]()
@@ -192,14 +193,7 @@ void ALife::ExecSkillMontages()
 		}
 		break;
 	default: // 마법 공격!
-		if (this->CurrentSkill.bIsAllAttack == true)
-		{
-			this->MyGameMode->CameraSee_SkillTargets_All();
-		} else
-		{
-			this->MyGameMode->CameraSee_SkillTarget_Angle4();
-		}
-		
+		UE_LOG(LogTemp, Log, TEXT("Skill Montage Playing : %s, AmIHuman: %s"), *this->CurrentSkill.Name.ToString(), (this->AmIHuman ? TEXT("True") : TEXT("False")));
 		
 		if (IsValid(this->CurrentSkill.ProjectileEffect))
 		{
@@ -228,7 +222,37 @@ void ALife::ExecSkillMontages()
 					);
 				}
 			}
-			this->MyGameMode->ApplyDamage();
+
+			// 데미지를 순차적으로 적용하기 위한 구조
+			int32 HitCountCalculated = FMath::RandRange(this->CurrentSkill.MinHitCount, this->CurrentSkill.MaxHitCount);
+		    
+			// 첫 번째 데미지는 즉시 적용
+			if (HitCountCalculated > 0)
+			{
+				this->MyGameMode->ApplyDamage();
+			}
+		    
+			// 나머지 데미지는 0.5초 간격으로 적용
+			if (HitCountCalculated > 1)
+			{
+				TSharedPtr<int32> CurrentHit = MakeShared<int32>(1); // 1부터 시작 (0번째는 이미 적용됨)
+				TSharedPtr<FTimerHandle> DamageTimerHandle = MakeShared<FTimerHandle>();
+		        
+				GetWorldTimerManager().SetTimer(*DamageTimerHandle, [this, HitCountCalculated, CurrentHit, DamageTimerHandle]()
+				{
+					if (*CurrentHit < HitCountCalculated)
+					{
+						this->MyGameMode->ApplyDamage();
+						(*CurrentHit)++;
+					}
+					else
+					{
+						// 모든 데미지 적용 완료, 타이머 정리
+						GetWorldTimerManager().ClearTimer(*DamageTimerHandle);
+					}
+				}, 0.5f, true); // 0.5초마다 반복
+			}
+			
 		},0.5f, false);
 
 		FTimerHandle TimerHandle2;
@@ -308,7 +332,7 @@ void ALife::ExecSkill(TArray<ALife*> Targets, FRowSkill Skill, FRowSkillRecord S
 	}
 
 	this->LifeStatComponent->ManipulateHp(Skill.CostHP*-1);
-	// this->LifeStatComponent->ManipulateHb(Skill.CostHb*-1);
+	
 	this->LifeStatComponent->ManipulateSodium(Skill.CostNa*-1);
 	this->LifeStatComponent->ManipulatePotassium(Skill.CostK*-1);
 	
@@ -360,7 +384,27 @@ void ALife::ExecSkill(TArray<ALife*> Targets, FRowSkill Skill, FRowSkillRecord S
 			GetWorldTimerManager().SetTimer(Th, [this]()
 			{
 				this->ExecSkillMontages();
+				
+				// Cam Control
+				if (this->AmIHuman)
+				{
+					if (this->CurrentSkill.bIsAllAttack == true)
+					{
+						this->MyGameMode->CameraSee_SkillTargets_All();
+					} else
+					{
+						this->MyGameMode->CameraSee_SkillTarget_Angle4();
+					}
+				}
 			},MontageLength, false);
+
+			// Cam Control
+			if (!this->AmIHuman){
+				if (this->CurrentSkill.bIsAllAttack == true)
+				{
+					this->MyGameMode->CameraSee_SkillTarget_EveryBody();
+				}
+			}
 		}
 	}
 }
@@ -391,7 +435,7 @@ void ALife::ResetAnim()
 
 void ALife::ShowHpBar()
 {
-	if (HpBarWidgetComponent)
+	if (HpBarWidgetComponent && this->LifeStatComponent->GetHp()>0)
 	{
 		HpBarWidgetComponent->SetVisibility(true);
 	}

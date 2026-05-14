@@ -44,7 +44,7 @@ void ABattleMainCam::SeePlayerBack(const FVector PlayerPos)
  */
 void ABattleMainCam::SeePlayerCenterToMargin(const FVector PlayerPos)
 {
-	this->TargetArmLength = 180.0f;
+	this->TargetArmLength = 270.0f;
 	TargetLocation = PlayerPos + FVector(0,0,50);
 
 	FRotator Rot = UKismetMathLibrary::FindLookAtRotation(FVector(0,0,-50),PlayerPos);

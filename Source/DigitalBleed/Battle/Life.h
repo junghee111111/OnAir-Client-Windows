@@ -160,4 +160,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	FString GetTmpCode() const { return TempCode; }
+
+	UPROPERTY()
+	bool AmIHuman = false;
 };

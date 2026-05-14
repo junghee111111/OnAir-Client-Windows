@@ -265,7 +265,10 @@ public:
 	void SetCurrentSkillRecord(FRowSkillRecord Skill);
 
 	UFUNCTION(BlueprintCallable)
-	void SelectPlayerLowestHp();
+	void SelectWeakestPlayer();
+
+	UFUNCTION(BlueprintCallable)
+	void SelectAllPlayer();
 
 	UFUNCTION(BlueprintCallable)
 	void ApplyDamage();
@@ -284,6 +287,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void CameraSee_SkillTarget_Angle4();
+	
+	void CameraSee_SkillTarget_FromEnemy();
+	void CameraSee_SkillTarget_EveryBody();
 
 	UFUNCTION()
 	TArray<ALife*> GetSkillTarget() const { return this->CurrentSkillTargets; }
