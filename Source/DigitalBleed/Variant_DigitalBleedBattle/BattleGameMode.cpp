@@ -886,6 +886,7 @@ void ABattleGameMode::ExecuteItem()
 void ABattleGameMode::ExecuteSkill()
 {
 	ALife* CurrentLife = this->AccessLifeByCode(this->CurrentTurnTarget);
+	bool IsPlayerTurn = !this->CurrentTurnTarget.StartsWith("Enemy_");
 	
 	if (CurrentLife->LifeStatComponent->GetHp() <= this->CurrentSkill.CostHP)
 	{
@@ -910,7 +911,7 @@ void ABattleGameMode::ExecuteSkill()
 	}
 
 	FTimerHandle Th;
-	GetWorldTimerManager().SetTimer(Th, [this]()
+	GetWorldTimerManager().SetTimer(Th, [this,IsPlayerTurn]()
 	{
 		if (this->CurrentSkill.Name.IsEmpty())
 		{
@@ -923,7 +924,10 @@ void ABattleGameMode::ExecuteSkill()
 		
 		if (this->CurrentSkill.bIsAllAttack == false)
 		{
-			this->MainCam->GoTowardsTarget(CurrentLife->GetActorLocation(), this->CurrentSkillTargets[0]->GetActorLocation());
+			if (this->CurrentSkill.Elemental == 0 || this->CurrentSkill.Elemental >0 && IsPlayerTurn == false)
+			{
+				this->MainCam->GoTowardsTarget(CurrentLife->GetActorLocation(), this->CurrentSkillTargets[0]->GetActorLocation());
+			}
 		}
 		
 		CurrentLife->ExecSkill(this->CurrentSkillTargets, this->CurrentSkill, this->CurrentSkillRecord);
@@ -1031,6 +1035,7 @@ void ABattleGameMode::SelectWeakestPlayer()
 	int32 LowestHp = 99999;
 	ALifeHuman* LowestHpLife = nullptr;
 	TArray<ALifeHuman*> PlayersHavingWeakPoint = {};
+	this->CurrentSkillTargets = {}; //일단 비워놓고 시작
 
 	// 만약 속성 공격이면..
 	if (this->CurrentSkill.Elemental>0)

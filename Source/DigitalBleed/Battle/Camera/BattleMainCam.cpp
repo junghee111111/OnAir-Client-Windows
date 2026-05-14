@@ -71,7 +71,10 @@ void ABattleMainCam::GoTowardsTarget(FVector PlayerPos, FVector EnemyPos)
 	TargetLocation = PlayerPos + FVector(0,0,70);
 
 	FRotator Rot = UKismetMathLibrary::FindLookAtRotation(PlayerPos, EnemyPos);
-	TargetRotation = Rot;
+	//약간의 랜덤값을 주어서 카메라-시전자-타겟이 일직선상에 놓이는 것을 방지한다.
+	float RandomYawOffset = FMath::RandRange(-10.0f, 10.0f);
+	TargetRotation = FRotator(Rot.Pitch, Rot.Yaw + RandomYawOffset, Rot.Roll);
+
 	bIsMovingToTarget = true;
 }
 
